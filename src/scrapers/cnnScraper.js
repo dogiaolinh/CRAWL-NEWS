@@ -14,6 +14,21 @@ async function scrapeCNN() {
 
   try {
     console.log("Truy cập CNN Home...");
+    const homepageHTML = await fetchArticleHTML("https://edition.cnn.com");
+    const $homePage = cheerio.load(homepageHTML);
+
+    const homepageLinks = new Set();
+
+    $homePage("a.container__link, a[data-link-type='article']").each((_, el) => {
+      let link = $homePage(el).attr("href");
+      if (!link) return;
+      if (!link.startsWith("http")) link = "https://edition.cnn.com" + link;
+      // console.log(link);
+      homepageLinks.add(link.split("?")[0]); 
+    });
+
+    console.log(`Trang chủ có ${homepageLinks.size} bài.`);
+    console.log("Truy cập danh mục...");
     const homeHTML = await fetchArticleHTML(baseURL);
     const $home = cheerio.load(homeHTML);
     const articles = [];
@@ -32,7 +47,7 @@ async function scrapeCNN() {
     });
 
     console.log(`Tìm thấy ${articles.length} bài. Lấy 5 bài đầu để test.`);
-    const selected = articles.slice(0, 5);
+    const selected = articles.slice(0, 3);
 
     for (const article of selected) {
       console.log(`\nXử lý: ${article.title}`);
@@ -45,6 +60,7 @@ async function scrapeCNN() {
       try {
         const html = await fetchArticleHTML(article.link);
         const $ = cheerio.load(html);
+        const isEditorChoice = homepageLinks.has(article.link.split("?")[0]);
 
         const pathParts = article.link.split("/").filter(Boolean);
         // const category = pathParts[pathParts.length - 2] || null;
@@ -57,7 +73,6 @@ async function scrapeCNN() {
           const category = $(el).text().trim();
           if (category) categories.push(category);
         });
-
         // Thumbnail riêng (ảnh đầu bài — ưu tiên lớn nhất)
         const thumbImg = $(".image_large__container img, .media__image img, img[data-src-large]").first();
         const thumbSrc = thumbImg.attr("data-src-large") || thumbImg.attr("data-src") || thumbImg.attr("src") || article.thumbnail;
@@ -98,6 +113,31 @@ async function scrapeCNN() {
               contentBlocks.push(`<p style="text-align: center;">${imgTag}${captionTag}</p>`);
             }
           }
+          else if ($el.hasClass("graphic-elevate") || $el.is("div[data-component-name='graphic']")) {
+            const graphicAnchor = $el.find(".graphic__anchor").first();
+
+            const pymSrc = graphicAnchor.attr("data-pym-src");
+            const iframe = graphicAnchor.find("iframe").first();
+            const iframeSrc = iframe.attr("src");
+
+            const finalSrc = pymSrc || iframeSrc;
+            if (finalSrc) {
+              // Bạn có thể style theo ý riêng
+              contentBlocks.push(`
+                <div style="margin: 20px 0;">
+                  <iframe 
+                    src="${finalSrc}" 
+                    width="100%"
+                    height="600"
+                    style="border:none; overflow:hidden;"
+                    scrolling="yes"
+                    frameborder="0"
+                  ></iframe>
+                </div>
+              `);
+            }
+          }
+
 
           // 3. Bỏ qua các phần tử không cần (quảng cáo, script, v.v.)
         });
@@ -134,7 +174,7 @@ async function scrapeCNN() {
           content_html: "<p>Đang xử lý ảnh...</p>",
           published_at: new Date().toISOString().slice(0, 19).replace("T", " "),
           category_1 : categories[0],
-          editor_choice: true,
+          editor_choice: isEditorChoice,
           category_2: categories[1] || null,
 
         });
