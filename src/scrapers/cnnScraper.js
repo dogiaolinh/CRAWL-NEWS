@@ -9,7 +9,20 @@ const { uploadImage } = require("../api/uploadImage");
 const axios = require("axios");
 
 async function scrapeCNN() {
+  //ok
   // const baseURL = "https://edition.cnn.com/world";
+  // const baseURL = "https://edition.cnn.com/politics";
+  // const baseURL = "https://edition.cnn.com/politics/president-donald-trump-47";
+  // const baseURL = "https://edition.cnn.com/entertainment";
+  // const baseURL = "https://edition.cnn.com/health";
+  // const baseURL = "https://edition.cnn.com/weather";
+
+
+
+
+
+  // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+  // ERROR
   // const baseURL = "https://edition.cnn.com/business";
   // const baseURL = "https://edition.cnn.com/style";
   // const baseURL = "https://edition.cnn.com/world/china";
@@ -17,8 +30,6 @@ async function scrapeCNN() {
   // const baseURL = "https://edition.cnn.com/style/fashion";
   // const baseURL = "https://edition.cnn.com/style/beauty";
   // const baseURL = "  https://edition.cnn.com/sport/football";
-
-
   // const baseURL = "https://edition.cnn.com/style/design";
   // const baseURL = "https://edition.cnn.com/style/beauty";
   // const baseURL = "https://edition.cnn.com/business/tech";
@@ -28,17 +39,14 @@ async function scrapeCNN() {
   // const baseURL = "https://edition.cnn.com/travel";
   // const baseURL = "https://edition.cnn.com/travel/news";
   // const baseURL = "https://edition.cnn.com/travel/food-and-drink";
-  // const baseURL = "https://edition.cnn.com/politics";
-  // const baseURL = "https://edition.cnn.com/politics/president-donald-trump-47";
   // const baseURL = "https://edition.cnn.com/politics/fact-check";
-  // const baseURL = "https://edition.cnn.com/entertainment";
   // const baseURL = "https://edition.cnn.com/entertainment/movies";
   // const baseURL = "https://edition.cnn.com/entertainment/tv-shows";
-  // const baseURL = "https://edition.cnn.com/health";
-  // const baseURL = "https://edition.cnn.com/weather";
   // const baseURL = "https://edition.cnn.com/climate";
-  const baseURL = "https://edition.cnn.com/business/tech";
-  // const baseURL = "";
+  // const baseURL = "https://edition.cnn.com/business/tech";
+  // const baseURL = "https://edition.cnn.com/us/crime-and-justice";
+  
+  
   // const baseURL = "";
   
 
