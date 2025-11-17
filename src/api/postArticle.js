@@ -2,6 +2,12 @@ const axios = require("axios");
 
 const BASE_URL = "http://127.0.0.1:8000/api";
 
+function formatCategoryName(name) {
+  return name
+    .replace(/-/g, " ")                // đổi dấu gạch thành space
+    .replace(/\b\w/g, c => c.toUpperCase());  // viết hoa chữ cái đầu
+}
+
 // 🧠 Tìm category theo tên (hàm tái sử dụng)
 async function findCategoryByName(name) {
   const res = await axios.get(`${BASE_URL}/categories`);
@@ -18,11 +24,11 @@ async function findCategoryByName(name) {
 // 🧠 Tạo mới category con nếu chưa có
 async function createChildCategory(name, parentId) {
   const slug = name.toLowerCase().replace(/\s+/g, "-");
-
+  const nameCate = formatCategoryName(name);
   const res = await axios.post(
     `${BASE_URL}/categories`,
     {
-      name,
+      name: nameCate,
       slug,
       parent_id: parentId,
     },
@@ -40,8 +46,26 @@ async function postToAPI(article) {
 
     // ✅ 1. Tìm category cha (đã có sẵn trong DB)
     if (article.category_1) {
-      const parentCat = await findCategoryByName(article.category_1);
-      if (!parentCat) throw new Error(`Không tìm thấy danh mục cha: ${article.category_1}`);
+      let parentCat = await findCategoryByName(article.category_1);
+
+      // ❗ Nếu không có → tạo mới category cha
+      if (!parentCat) {
+        const slug = article.category_1.toLowerCase().replace(/\s+/g, "-");
+
+        const newParent = await axios.post(
+          `${BASE_URL}/categories`,
+          {
+            name: formatCategoryName(article.category_1),
+            slug,
+            parent_id: null,
+          },
+          { headers: { "Content-Type": "application/json" } }
+        );
+
+        parentCat = newParent.data?.data || newParent.data;
+        console.log(`🆕 Tạo category cha: ${article.category_1}`);
+      }
+
       parentCategoryId = parentCat.id;
       categoryId = parentCat.id;
     }

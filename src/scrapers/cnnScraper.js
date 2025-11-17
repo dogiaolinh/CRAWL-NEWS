@@ -7,7 +7,28 @@ const { callGeminiAPI } = require("../utils/apiCaller");
 const { postToAPI } = require("../api/postArticle");
 const { uploadImage } = require("../api/uploadImage");
 const axios = require("axios");
+function extractCategoriesFromURL(url) {
+  try {
+    const u = new URL(url);
+    const segments = u.pathname
+      .split("/")
+      .filter(seg => seg && seg.length > 1);  // bỏ slash và empty
 
+    let categories = [];
+
+    if (segments.length >= 3) {
+      // Lấy 2 segment cuối trước slug
+      categories = segments.slice(-3, -1);
+    } else if (segments.length === 2) {
+      categories = segments.slice(0, 2);
+    } else if (segments.length === 1) {
+      categories = segments;
+    }
+    return categories;
+  } catch (e) {
+    return [];
+  }
+}
 async function scrapeCNN() {
   //ok
   // const baseURL = "https://edition.cnn.com/world";
@@ -30,12 +51,15 @@ async function scrapeCNN() {
   // const baseURL = "https://edition.cnn.com/style/fashion";
   // const baseURL = "https://edition.cnn.com/style/beauty";
   // const baseURL = "  https://edition.cnn.com/sport/football";
+  // const baseURL = "  https://edition.cnn.com/sport";
   // const baseURL = "https://edition.cnn.com/style/design";
   // const baseURL = "https://edition.cnn.com/style/beauty";
   // const baseURL = "https://edition.cnn.com/business/tech";
   // const baseURL = "https://edition.cnn.com/business/media";
   // const baseURL = "https://edition.cnn.com/us";
   // const baseURL = "https://edition.cnn.com/";
+  // const baseURL = "https://edition.cnn.com/world/europe/ukraine";
+
   // const baseURL = "https://edition.cnn.com/travel";
   // const baseURL = "https://edition.cnn.com/travel/news";
   // const baseURL = "https://edition.cnn.com/travel/food-and-drink";
@@ -79,20 +103,27 @@ async function scrapeCNN() {
     const $home = cheerio.load(homeHTML);
     const articles = [];
 
-    $home("div.stack__items li.card").each((_, el) => {
-      const $el = $home(el);
+    $home(`
+      div.stack__items li.card,
+      .container_lead-plus-headlines-with-images li.card,
+      .container_vertical-strip__cards-wrapper li.card,
+      .zone__items.layout--balanced-4 .container_lead-plus-headlines__cards-wrapper li.card,
+      .container_lead-plus-headlines__cards-wrapper li.card
+
+    `).each((_, el) => {      const $el = $home(el);
       const link = $el.find("a.container__link").attr("href");
       // console.log(link);
       const title = $el.find(".container__headline-text").text().trim();
       // console.log(title);
       const img = $el.find("img").attr("src") || $el.find("video source").attr("src");
+      // console.log(img);
       if (link && title) {
         const fullLink = link.startsWith("http") ? link : `https://edition.cnn.com${link}`;
         articles.push({ title, link: fullLink, thumbnail: img });
       }
     });
 
-    console.log(`Tìm thấy ${articles.length} bài. Lấy 5 bài đầu để test.`);
+    console.log(`Tìm thấy ${articles.length} bài. Lấy 3 bài đầu để test.`);
     const selected = articles.slice(0, 3);
 
     for (const article of selected) {
@@ -113,12 +144,17 @@ async function scrapeCNN() {
         // console.log(category);
         const slug = pathParts[pathParts.length - 1].split(".")[0] || null;
         const title = $("h1").first().text().trim() || article.title;
-        // Lấy category (breadcrumb)
-        const categories = [];
-        $(".breadcrumb-elevate a").each((_, el) => {
-          const category = $(el).text().trim();
-          if (category) categories.push(category);
-        });
+        let categories = extractCategoriesFromURL(baseURL);
+
+        if (categories.length === 0) {
+          // fallback sang breadcrumb nếu URL không có category rõ ràng
+          $(".breadcrumb-elevate a").each((_, el) => {
+            const c = $(el).text().trim();
+            if (c) categories.push(c);
+          });
+        }
+
+        // console.log("Categories:", categories);
         // Thumbnail riêng (ảnh đầu bài — ưu tiên lớn nhất)
         const thumbImg = $(".image_large__container img, .media__image img, img[data-src-large]").first();
         const thumbSrc = thumbImg.attr("data-src-large") || thumbImg.attr("data-src") || thumbImg.attr("src") || article.thumbnail;
