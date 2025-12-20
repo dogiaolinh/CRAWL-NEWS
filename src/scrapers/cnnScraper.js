@@ -37,6 +37,9 @@ async function scrapeCNN() {
   // const baseURL = "https://edition.cnn.com/entertainment";
   // const baseURL = "https://edition.cnn.com/health";
   const baseURL = "https://edition.cnn.com/weather";
+  // const baseURL = "  https://edition.cnn.com/business/tech";
+
+
 
 
 

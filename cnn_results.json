@@ -1,1 +1,20 @@
-[]
+[
+  {
+    "title": "Seattle Seahawks claim playoff spot after making 16-point, 4th-quarter comeback to stun LA Rams in OT thriller",
+    "url": "https://edition.cnn.com/2025/12/19/sport/football-nfl-seahawks-rams-tnf-thriller",
+    "articleId": 719,
+    "images": 2
+  },
+  {
+    "title": "Ticket prices raise the question: Will this be the ‘prawn sandwich’ World Cup?",
+    "url": "https://edition.cnn.com/2025/12/17/sport/soccer-world-cup-ticket-prices-analysis",
+    "articleId": 720,
+    "images": 3
+  },
+  {
+    "title": "FIFA slashes price of some World Cup tickets to $60 after global fan backlash",
+    "url": "https://edition.cnn.com/2025/12/16/sport/soccer-fifa-slashes-price-of-some-world-cup-tickets-after-fan-backlash",
+    "articleId": 721,
+    "images": 1
+  }
+]
