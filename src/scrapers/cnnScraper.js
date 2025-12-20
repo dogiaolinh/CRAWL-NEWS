@@ -36,7 +36,7 @@ async function scrapeCNN() {
   // const baseURL = "https://edition.cnn.com/politics/president-donald-trump-47";
   // const baseURL = "https://edition.cnn.com/entertainment";
   // const baseURL = "https://edition.cnn.com/health";
-  // const baseURL = "https://edition.cnn.com/weather";
+  const baseURL = "https://edition.cnn.com/weather";
 
 
 
@@ -293,7 +293,7 @@ async function scrapeCNN() {
         }
 
         // === 7. CẬP NHẬT BÀI VIẾT ===
-        await axios.put(`http://127.0.0.1:8000/api/edit/article/${articleId}`, {
+        await axios.put(`https://www.todaynews.blog/api/edit/article/${articleId}`, {
           body: finalContent,
         }, { headers: { "Content-Type": "application/json" } });
 
