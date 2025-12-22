@@ -36,7 +36,7 @@ async function scrapeCNN() {
   // const baseURL = "https://edition.cnn.com/politics/president-donald-trump-47";
   // const baseURL = "https://edition.cnn.com/entertainment";
   // const baseURL = "https://edition.cnn.com/health";
-  const baseURL = "https://edition.cnn.com/weather";
+  // const baseURL = "https://edition.cnn.com/weather";
   // const baseURL = "  https://edition.cnn.com/business/tech";
 
 
@@ -63,7 +63,7 @@ async function scrapeCNN() {
   // const baseURL = "https://edition.cnn.com/";
   // const baseURL = "https://edition.cnn.com/world/europe/ukraine";
 
-  // const baseURL = "https://edition.cnn.com/travel";
+  const baseURL = "https://edition.cnn.com/travel";
   // const baseURL = "https://edition.cnn.com/travel/news";
   // const baseURL = "https://edition.cnn.com/travel/food-and-drink";
   // const baseURL = "https://edition.cnn.com/politics/fact-check";
@@ -127,7 +127,9 @@ async function scrapeCNN() {
     });
 
     console.log(`Tìm thấy ${articles.length} bài. Lấy 3 bài đầu để test.`);
+    // const selected = articles.slice(16, 20);
     const selected = articles.slice(0, 3);
+
 
     for (const article of selected) {
       console.log(`\nXử lý: ${article.title}`);
