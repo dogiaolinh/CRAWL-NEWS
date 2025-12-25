@@ -1,6 +1,6 @@
 // src/utils/chunkSplitter.js
 function splitIntoChunks(html, maxSize = 7000) {
-  const blocks = html.split(/(?=<p|<div|<figure|<ul|<ol|<blockquote|<section|<img|<iframe|<em)/g);
+  const blocks = html.split(/(?=<p|<div|<figure|<ul|<ol|<blockquote|<section|<img|<iframe|<em|<a)/g);
   const chunks = [];
   let currentChunk = "";
 

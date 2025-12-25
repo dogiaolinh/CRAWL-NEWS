@@ -1,8 +1,8 @@
-const { scrapeCNN } = require("./scrapers/cnnScraper");
+const { scrapeAll } = require("./scrapers/cnnScraper");
 
 (async () => {
   try {
-    await scrapeCNN();
+    await scrapeAll();
     console.log("HOÀN TẤT TOÀN BỘ!");
   } catch (err) {
     console.error("Lỗi:", err.message);

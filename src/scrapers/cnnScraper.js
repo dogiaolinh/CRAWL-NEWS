@@ -29,59 +29,51 @@ function extractCategoriesFromURL(url) {
     return [];
   }
 }
-async function scrapeCNN() {
-  //ok
-  // const baseURL = "https://edition.cnn.com/world";
-  // const baseURL = "https://edition.cnn.com/politics";
-  // const baseURL = "https://edition.cnn.com/politics/president-donald-trump-47";
-  // const baseURL = "https://edition.cnn.com/entertainment";
-  // const baseURL = "https://edition.cnn.com/health";
-  const baseURL = "https://edition.cnn.com/weather";
-  // const baseURL = "  https://edition.cnn.com/business/tech";
-
-
-
-
-
-
-
-  // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-  // ERROR
-  // const baseURL = "https://edition.cnn.com/business";
-  // const baseURL = "https://edition.cnn.com/style";
-  // const baseURL = "https://edition.cnn.com/world/china";
-  // const baseURL = "https://edition.cnn.com/style/arts";
-  // const baseURL = "https://edition.cnn.com/style/fashion";
-  // const baseURL = "https://edition.cnn.com/style/beauty";
-  // const baseURL = "  https://edition.cnn.com/sport/football";
-  // const baseURL = "  https://edition.cnn.com/sport";
-  // const baseURL = "https://edition.cnn.com/style/design";
-  // const baseURL = "https://edition.cnn.com/style/beauty";
-  // const baseURL = "https://edition.cnn.com/business/tech";
-  // const baseURL = "https://edition.cnn.com/business/media";
-  // const baseURL = "https://edition.cnn.com/us";
-  // const baseURL = "https://edition.cnn.com/";
-  // const baseURL = "https://edition.cnn.com/world/europe/ukraine";
-
-  // const baseURL = "https://edition.cnn.com/travel";
-  // const baseURL = "https://edition.cnn.com/travel/news";
-  // const baseURL = "https://edition.cnn.com/travel/food-and-drink";
-  // const baseURL = "https://edition.cnn.com/politics/fact-check";
-  // const baseURL = "https://edition.cnn.com/entertainment/movies";
-  // const baseURL = "https://edition.cnn.com/entertainment/tv-shows";
-  // const baseURL = "https://edition.cnn.com/climate";
-  // const baseURL = "https://edition.cnn.com/business/tech";
-  // const baseURL = "https://edition.cnn.com/us/crime-and-justice";
-  
-  
-  // const baseURL = "";
-  
-
-
-
-
-
-
+async function checkSlugExists(slug) {
+  try {
+    const response = await axios.get(`https://www.todaynews.blog/api/check-slug/${slug}`);
+    return response.data.exists === true;
+  } catch (error) {
+    console.error('Lỗi kiểm tra slug:', error);
+    return false; // Nếu lỗi, giả sử không tồn tại để tránh block
+  }
+}
+async function scrapeAll() {
+  const baseURLs = [
+    "https://edition.cnn.com/",
+    "https://edition.cnn.com/world",
+    "https://edition.cnn.com/us",
+    // "https://edition.cnn.com/politics",
+    // "https://edition.cnn.com/politics/president-donald-trump-47",
+    // "https://edition.cnn.com/politics/fact-check",
+    // "https://edition.cnn.com/entertainment",
+    // "https://edition.cnn.com/entertainment/movies",
+    // "https://edition.cnn.com/entertainment/tv-shows",
+    // "https://edition.cnn.com/health",
+    // "https://edition.cnn.com/weather",
+    // "https://edition.cnn.com/business",
+    // "https://edition.cnn.com/business/tech",
+    // "https://edition.cnn.com/business/media",
+    // "https://edition.cnn.com/style",
+    // "https://edition.cnn.com/style/arts",
+    // "https://edition.cnn.com/style/fashion",
+    // "https://edition.cnn.com/style/beauty",
+    // "https://edition.cnn.com/style/design",
+    // "https://edition.cnn.com/sport",
+    // "https://edition.cnn.com/sport/football",
+    // "https://edition.cnn.com/world/china",
+    // "https://edition.cnn.com/world/europe/ukraine",
+    // "https://edition.cnn.com/travel",
+    // "https://edition.cnn.com/travel/news",
+    // "https://edition.cnn.com/travel/food-and-drink",
+    // "https://edition.cnn.com/climate",
+    // "https://edition.cnn.com/us/crime-and-justice"
+  ];
+  for (const baseURL of baseURLs) {
+    await scrapeCNN(baseURL);
+  }
+}
+async function scrapeCNN(baseURL) {
 
   const results = [];
 
@@ -144,8 +136,17 @@ async function scrapeCNN() {
 
         const pathParts = article.link.split("/").filter(Boolean);
         // const category = pathParts[pathParts.length - 2] || null;
-        // console.log(category);
         const slug = pathParts[pathParts.length - 1].split(".")[0] || null;
+        console.log(slug);
+        // Kiểm tra slug tồn tại
+        const slugExists = await checkSlugExists(slug);
+
+        if (slugExists) {
+          // Slug đã tồn tại → bỏ qua việc post bài này
+          console.log(`Slug "${slug}" đã tồn tại, bỏ qua đăng bài.`);
+          // Hoặc bạn có thể throw error, return, hoặc xử lý khác
+          continue;
+        }
         const title = $("h1").first().text().trim() || article.title;
         let categories = extractCategoriesFromURL(baseURL);
 
@@ -228,7 +229,7 @@ async function scrapeCNN() {
         });
 
         let content_html = contentBlocks.join("\n");
-        console.log(content_html);
+        // console.log(content_html);
         if (!content_html || content_html.trim() === "") {
           console.log("Bỏ qua bài báo vì không có nội dung");
           continue;
@@ -261,8 +262,8 @@ async function scrapeCNN() {
           category_1 : categories[0],
           editor_choice: isEditorChoice,
           category_2: categories[1] || null,
-
         });
+        await uploadImage("https://img.freepik.com/premium-photo/futuristic-tech-interface-data-analysis-digital-network_1110022-23878.jpg", title, articleId);
 
         // console.log(content_html);
         // === 3. PARAPHRASE (giữ nguyên <img>) ===
@@ -278,9 +279,6 @@ async function scrapeCNN() {
 
         // === 5. UPLOAD ẢNH ===
         console.log(`Upload ${imageList.length} ảnh...`);
-        if(imageList.length == 0){
-          await uploadImage("https://img.freepik.com/premium-photo/futuristic-tech-interface-data-analysis-digital-network_1110022-23878.jpg", title, articleId);
-        }
         const urlMap = new Map();
         for (const img of imageList) {
           const newUrl = await uploadImage(img.url, img.alt, articleId);
@@ -299,7 +297,10 @@ async function scrapeCNN() {
         await axios.put(`https://www.todaynews.blog/api/edit/article/${articleId}`, {
           body: finalContent,
         }, { headers: { "Content-Type": "application/json" } });
-
+        if(imageList.length > 0){
+          await axios.delete(`https://www.todaynews.blog/api/delete/image/${articleId}`);
+          console.log(`Đã xóa ảnh tạm đầu tiên`);
+        }
         console.log(`HOÀN TẤT: ${title} (ID: ${articleId})`);
         success = true;
         console.log("Đợi 5s!");
@@ -325,4 +326,4 @@ async function scrapeCNN() {
   }
 }
 
-module.exports = { scrapeCNN };
+module.exports = { scrapeAll };

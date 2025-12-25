@@ -1,7 +1,17 @@
 // src/config/gemini.js
-const API_KEY = "AIzaSyAHrKwpZ5hgJvZOHz5qYG7_0zAkWd7lq7w";
-// const MODEL_NAME = "gemini-2.0-flash";
-const MODEL_NAME = "gemini-2.5-flash";
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1/models/${MODEL_NAME}:generateContent?key=${API_KEY}`;
+const API_KEYS = [
+  "AIzaSyCNpHtusiYak5L_3XGiNIvMCpmd5imD4bI",
+  "AIzaSyCJajYCYyXrHEVwxOTgyKRMW8hzevahxkg",
+  "AIzaSyBNojf23sAZ3SnXAXyfR4qYBygwPImo1uk",
+];
 
-module.exports = { GEMINI_URL };
+const MODEL_NAME = "gemini-2.5-flash";
+
+function buildGeminiUrl(apiKey) {
+  return `https://generativelanguage.googleapis.com/v1/models/${MODEL_NAME}:generateContent?key=${apiKey}`;
+}
+
+module.exports = {
+  API_KEYS,
+  buildGeminiUrl,
+};

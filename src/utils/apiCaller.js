@@ -1,6 +1,6 @@
 // src/utils/apiCaller.js
 const axios = require("axios");
-const { GEMINI_URL } = require("../config/gemini");
+const { API_KEYS, buildGeminiUrl } = require("../config/gemini");
 
   async function callGeminiAPI(text, retries = 3) {
     const prompt = `
@@ -44,25 +44,60 @@ const { GEMINI_URL } = require("../config/gemini");
     Now rewrite it following all rules above:
     `;
 
+    let keyIndex = 0; // key hiện tại
+
     for (let attempt = 1; attempt <= retries; attempt++) {
+      const apiKey = API_KEYS[keyIndex];
+      const GEMINI_URL = buildGeminiUrl(apiKey);
+
       try {
         const response = await axios.post(
           GEMINI_URL,
           {
             contents: [{ parts: [{ text: prompt }] }],
             generationConfig: {
-              temperature: 0.6,
-              maxOutputTokens: 2048,
-              topP: 0.9,
+              temperature: 0.8,
+              maxOutputTokens: 8192,
+              topP: 0.95,
             },
           },
-          { headers: { "Content-Type": "application/json" }, timeout: 180000 }
+          {
+            headers: { "Content-Type": "application/json" },
+            timeout: 180000,
+          }
         );
-        const result = response.data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+
+        const result =
+          response.data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        // console.log(`Ket qua Text: ${text}`);
+        // console.log(`Ket qua Dich: ${result}`);
         return result || text;
       } catch (err) {
-        console.error(`❌ Lỗi gọi Gemini (thử ${attempt}/${retries}):`, err.message);
-        if (attempt === retries) return text;
+        const status = err.response?.status;
+
+        console.error(
+          `❌ Lỗi gọi Gemini (key ${keyIndex + 1}/${API_KEYS.length}, thử ${attempt}/${retries}):`,
+          err.message
+        );
+
+        // 👉 Nếu bị rate limit thì đổi API key
+        if (status === 429) {
+          keyIndex++;
+
+          if (keyIndex >= API_KEYS.length) {
+            console.error("🚫 Đã hết API key khả dụng");
+            return text;
+          }
+
+          console.warn(
+            `🔁 Đổi sang API key ${keyIndex + 1}/${API_KEYS.length}`
+          );
+        }
+
+        // Nếu đã retry hết
+        if (attempt === retries) {
+          return text;
+        }
       }
     }
   }
