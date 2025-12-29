@@ -40,10 +40,10 @@ async function checkSlugExists(slug) {
 }
 async function scrapeAll() {
   const baseURLs = [
-    "https://edition.cnn.com/",
-    "https://edition.cnn.com/world",
-    "https://edition.cnn.com/us",
-    "https://edition.cnn.com/health/life-but-better/fitness",
+    // "https://edition.cnn.com/",
+    // "https://edition.cnn.com/world",
+    // "https://edition.cnn.com/us",
+    // "https://edition.cnn.com/health/life-but-better/fitness",
 
     // "https://edition.cnn.com/politics",
     // "https://edition.cnn.com/politics/president-donald-trump-47",
@@ -61,7 +61,7 @@ async function scrapeAll() {
     // "https://edition.cnn.com/style/fashion",
     // "https://edition.cnn.com/style/beauty",
     // "https://edition.cnn.com/style/design",
-    // "https://edition.cnn.com/sport",
+    "https://edition.cnn.com/sport",
     // "https://edition.cnn.com/sport/football",
     // "https://edition.cnn.com/sport/tennis",
     // "https://edition.cnn.com/sport/golf",
@@ -131,7 +131,7 @@ async function scrapeCNN(baseURL) {
     });
 
     console.log(`Tìm thấy ${articles.length} bài. Lấy 3 bài đầu để test.`);
-    const selected = articles.slice(0, 3);
+    const selected = articles.reverse().slice(0, 3);
 
     for (const article of selected) {
       console.log(`\nXử lý: ${article.title}`);
