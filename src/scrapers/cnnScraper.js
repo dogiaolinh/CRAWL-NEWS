@@ -40,10 +40,10 @@ async function checkSlugExists(slug) {
 }
 async function scrapeAll() {
   const baseURLs = [
-    // "https://edition.cnn.com/",
-    // "https://edition.cnn.com/world",
-    // "https://edition.cnn.com/us",
-    // "https://edition.cnn.com/health/life-but-better/fitness",
+    "https://edition.cnn.com/",
+    "https://edition.cnn.com/world",
+    "https://edition.cnn.com/us",
+    "https://edition.cnn.com/health/life-but-better/fitness",
 
     // "https://edition.cnn.com/politics",
     // "https://edition.cnn.com/politics/president-donald-trump-47",
@@ -51,7 +51,7 @@ async function scrapeAll() {
     // "https://edition.cnn.com/entertainment",
     // "https://edition.cnn.com/entertainment/movies",
     // "https://edition.cnn.com/entertainment/tv-shows",
-    // "https://edition.cnn.com/health",
+    // "https://edition.cnn.com/entertainment/celebrities",
     // "https://edition.cnn.com/weather",
     // "https://edition.cnn.com/business",
     // "https://edition.cnn.com/business/tech",
@@ -67,6 +67,7 @@ async function scrapeAll() {
     // "https://edition.cnn.com/sport/golf",
     // "https://edition.cnn.com/sport/motorsport",
     // "https://edition.cnn.com/sport/paris-olympics-2024",
+    // "https://edition.cnn.com/health",
     // "https://edition.cnn.com/health/life-but-better/sleep",
     // "https://edition.cnn.com/health/life-but-better/mindfulness",
     // "https://edition.cnn.com/health/life-but-better/relationships",
@@ -77,11 +78,8 @@ async function scrapeAll() {
     // "https://edition.cnn.com/travel/food-and-drink",
     // "https://edition.cnn.com/climate",
     // "https://edition.cnn.com/us/crime-and-justice",
-    "https://edition.cnn.com/entertainment/tv-shows",
-    "https://edition.cnn.com/entertainment/celebrities",
-    "https://edition.cnn.com/science",
-    "https://edition.cnn.com/science/space",
-    "https://edition.cnn.com/entertainment/movies"
+    // "https://edition.cnn.com/science",
+    // "https://edition.cnn.com/science/space"
   ];
   for (const baseURL of baseURLs) {
     await scrapeCNN(baseURL);
