@@ -111,12 +111,11 @@ async function scrapeCNN(baseURL) {
     const articles = [];
 
     $home(`
-      div.stack__items li.card,
       .container_lead-plus-headlines-with-images li.card,
+      .container_lead-plus-headlines__cards-wrapper li.card
       .container_vertical-strip__cards-wrapper li.card,
       .zone__items.layout--balanced-4 .container_lead-plus-headlines__cards-wrapper li.card,
-      .container_lead-plus-headlines__cards-wrapper li.card
-
+      div.stack__items li.card
     `).each((_, el) => {      const $el = $home(el);
       const link = $el.find("a.container__link").attr("href");
       // console.log(link);
@@ -131,7 +130,7 @@ async function scrapeCNN(baseURL) {
     });
 
     console.log(`Tìm thấy ${articles.length} bài. Lấy 3 bài đầu để test.`);
-    const selected = articles.reverse().slice(0, 3);
+    const selected = articles.slice(0, 3);
 
     for (const article of selected) {
       console.log(`\nXử lý: ${article.title}`);
