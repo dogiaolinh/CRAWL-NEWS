@@ -111,15 +111,16 @@ async function scrapeCNN(baseURL) {
     const articles = [];
 
     $home(`
+      .container_spotlight-package .container_spotlight-package__field-links .card,
       .container_lead-plus-headlines-with-images li.card,
-      .container_lead-plus-headlines__cards-wrapper li.card
+      .container_lead-plus-headlines__cards-wrapper li.card,
       .container_vertical-strip__cards-wrapper li.card,
       .zone__items.layout--balanced-4 .container_lead-plus-headlines__cards-wrapper li.card,
       div.stack__items li.card
     `).each((_, el) => {      const $el = $home(el);
-      const link = $el.find("a.container__link").attr("href");
+      const link = $el.find("a.container__link").attr("href") || $el.attr("data-open-link");
       // console.log(link);
-      const title = $el.find(".container__headline-text").text().trim();
+      const title = $el.find(".container__headline-text").text().trim() || $el.find(".container__title_url-text").text().trim();
       // console.log(title);
       const img = $el.find("img").attr("src") || $el.find("video source").attr("src");
       // console.log(img);
