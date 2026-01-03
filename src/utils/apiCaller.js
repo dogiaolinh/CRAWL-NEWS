@@ -12,7 +12,7 @@ const { API_KEYS, buildGeminiUrl } = require("../config/gemini");
     🎯 **Core Requirements:**
     - **Preserve 100% of facts**: names, dates, numbers, direct quotes (in quotation marks), locations, events, timelines, and sources must remain **exactly** as in the original.
     - **Eliminate all references to "CNN", "TodayNews" branding in source attribution, or any previous outlet-specific marking**:
-      - Remove "(CNN)", "CNN.com", "(TodayNews)", "TodayNews.com", "Reporting by TodayNews", "TodayNews Exclusive", etc.
+      - Remove "(CNN)", "CNN.com", "Reporting by CNN", "CNN Exclusive", etc.      
       - Replace reporter bylines like "By [Name], CNN" or "By [Name], TodayNews" → simply "By [Name]" or remove if not essential to the story.
       - Do not imply affiliation with CNN, TodayNews (in source context), or any other specific brand in a way that suggests the original source.
     - **Rephrase aggressively for originality**:
