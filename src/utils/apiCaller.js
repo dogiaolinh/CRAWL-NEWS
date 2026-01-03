@@ -2,7 +2,7 @@
 const axios = require("axios");
 const { API_KEYS, buildGeminiUrl } = require("../config/gemini");
 
-  async function callGeminiAPI(text, retries = 3) {
+  async function callGeminiAPI(text, retries = 7) {
     const prompt = `
     You are a **senior English news editor** working for an independent international news outlet (NOT affiliated with CNN, BBC, or any specific brand).
     Your task is to **rewrite the following article** to create an original version that:

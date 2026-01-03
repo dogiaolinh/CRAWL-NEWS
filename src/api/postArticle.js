@@ -12,11 +12,11 @@ function formatCategoryName(name) {
 async function findCategoryByName(name) {
   const res = await axios.get(`${BASE_URL}/categories`);
   const categories = res.data?.data || res.data || [];
-
+  const check_name = formatCategoryName(name);
   return categories.find(
     (cat) => {
       const normalize = (str) => str.toLowerCase().trim().replace(/s$/, "");
-      return normalize(cat.name) === normalize(name);
+      return normalize(cat.name) === normalize(check_name);
     }
   );
 }

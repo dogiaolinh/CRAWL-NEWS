@@ -61,7 +61,7 @@ async function scrapeAll() {
     // "https://edition.cnn.com/style/fashion",
     // "https://edition.cnn.com/style/beauty",
     // "https://edition.cnn.com/style/design",
-    "https://edition.cnn.com/sport",
+    // "https://edition.cnn.com/sport",
     // "https://edition.cnn.com/sport/football",
     // "https://edition.cnn.com/sport/tennis",
     // "https://edition.cnn.com/sport/golf",
@@ -75,7 +75,7 @@ async function scrapeAll() {
     // "https://edition.cnn.com/world/europe/ukraine",
     // "https://edition.cnn.com/travel",
     // "https://edition.cnn.com/travel/news",
-    // "https://edition.cnn.com/travel/food-and-drink",
+    "https://edition.cnn.com/travel/food-and-drink",
     // "https://edition.cnn.com/climate",
     // "https://edition.cnn.com/us/crime-and-justice",
     // "https://edition.cnn.com/science",
@@ -131,7 +131,7 @@ async function scrapeCNN(baseURL) {
     });
 
     console.log(`Tìm thấy ${articles.length} bài. Lấy 3 bài đầu để test.`);
-    const selected = articles.slice(0, 3);
+    const selected = articles.slice(0, 30);
 
     for (const article of selected) {
       console.log(`\nXử lý: ${article.title}`);
@@ -275,7 +275,7 @@ async function scrapeCNN(baseURL) {
           editor_choice: isEditorChoice,
           category_2: categories[1] || null,
         });
-        await uploadImage("https://img.freepik.com/premium-photo/futuristic-tech-interface-data-analysis-digital-network_1110022-23878.jpg", title, articleId);
+        await uploadImage("https://www.shutterstock.com/image-vector/breaking-news-sign-on-globe-600nw-2622724291.jpg", title, articleId);
 
         // console.log(content_html);
         // === 3. PARAPHRASE (giữ nguyên <img>) ===
