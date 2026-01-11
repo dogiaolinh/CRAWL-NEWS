@@ -151,9 +151,9 @@ async function checkSlugExists(slug) {
 }
 async function scrapeAll() {
   const baseURLs = [
-    "https://edition.cnn.com/",
+    // "https://edition.cnn.com/",
     // "https://edition.cnn.com/world",
-    // "https://edition.cnn.com/us",
+    "https://edition.cnn.com/us",
     // "https://edition.cnn.com/health/life-but-better/fitness",
 
     // "https://edition.cnn.com/politics",

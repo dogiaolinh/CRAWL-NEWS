@@ -1,7 +1,7 @@
 // src/utils/apiCaller.js
 const axios = require("axios");
 const { API_KEYS, buildGeminiUrl } = require("../config/gemini");
-
+let keyIndex = 0;
   async function callGeminiAPI(text, retries = 7) {
     const prompt = `
     You are a **senior English news editor** working for TodayNews, an independent international news outlet.
@@ -47,7 +47,7 @@ const { API_KEYS, buildGeminiUrl } = require("../config/gemini");
     `;
 
 
-    for (let keyIndex = 0; keyIndex < API_KEYS.length; keyIndex++) {
+    for (let i = 0; i < API_KEYS.length; i++) {
       const apiKey = API_KEYS[keyIndex];
       const GEMINI_URL = buildGeminiUrl(apiKey);
 
@@ -76,20 +76,16 @@ const { API_KEYS, buildGeminiUrl } = require("../config/gemini");
         const status = err.response?.status;
 
         console.error(
-          `❌ Gemini lỗi (key ${keyIndex + 1}/${API_KEYS.length})`,
-          {
-            status,
-            message: err.response?.data || err.message,
-          }
+          `❌ Gemini lỗi (key ${i + 1}/${API_KEYS.length})`,
         );
-
         // 👉 nếu là lỗi cuối cùng → fallback
-        if (keyIndex === API_KEYS.length - 1) {
+        if (i === API_KEYS.length - 1) {
           console.error("🚫 Tất cả API key đều lỗi");
           return text;
         }
+        keyIndex = (keyIndex + 1) % API_KEYS.length;
 
-        console.warn(`🔁 Chuyển sang API key ${keyIndex + 2}`);
+        console.warn(`🔁 Chuyển sang API key ${i + 2}`);
       }
     }
   }
