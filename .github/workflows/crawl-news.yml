@@ -1,0 +1,36 @@
+name: Crawl and Post News
+
+on:
+  schedule:
+    # Chạy 7 lần/ngày, cách nhau khoảng 3.5 tiếng
+    - cron: '0 0 * * *'    # 00:00 UTC (7h sáng VN)
+    - cron: '30 3 * * *'   # 03:30 UTC (10h30 sáng VN)
+    - cron: '0 7 * * *'    # 07:00 UTC (14h VN)
+    - cron: '30 10 * * *'  # 10:30 UTC (17h30 VN)
+    - cron: '0 14 * * *'   # 14:00 UTC (21h VN)
+    - cron: '30 17 * * *'  # 17:30 UTC (00h30 sáng VN)
+    - cron: '0 21 * * *'   # 21:00 UTC (04h sáng VN)
+  
+  workflow_dispatch:
+
+jobs:
+  crawl-and-post:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm install
+      
+      - name: Run crawler
+        run: node src/index.js
+        env:
+          API_KEY: ${{ secrets.API_KEY }}

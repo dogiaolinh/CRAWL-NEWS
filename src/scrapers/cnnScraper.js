@@ -40,46 +40,46 @@ async function checkSlugExists(slug) {
 }
 async function scrapeAll() {
   const baseURLs = [
-    // "https://edition.cnn.com/",
-    // "https://edition.cnn.com/world",
-    // "https://edition.cnn.com/us",
-    // "https://edition.cnn.com/health/life-but-better/fitness",
+    "https://edition.cnn.com/",
+    "https://edition.cnn.com/world",
+    "https://edition.cnn.com/us",
+    "https://edition.cnn.com/health/life-but-better/fitness",
 
-    // "https://edition.cnn.com/politics",
-    // "https://edition.cnn.com/politics/president-donald-trump-47",
-    // "https://edition.cnn.com/politics/fact-check",
-    // "https://edition.cnn.com/entertainment",
-    // "https://edition.cnn.com/entertainment/movies",
-    // "https://edition.cnn.com/entertainment/tv-shows",
-    // "https://edition.cnn.com/entertainment/celebrities",
-    // "https://edition.cnn.com/weather",
-    // "https://edition.cnn.com/business",
-    // "https://edition.cnn.com/business/tech",
-    // "https://edition.cnn.com/business/media",
-    // "https://edition.cnn.com/style",
-    // "https://edition.cnn.com/style/arts",
-    // "https://edition.cnn.com/style/fashion",
-    // "https://edition.cnn.com/style/beauty",
-    // "https://edition.cnn.com/style/design",
-    // "https://edition.cnn.com/sport",
-    // "https://edition.cnn.com/sport/football",
-    // "https://edition.cnn.com/sport/tennis",
-    // "https://edition.cnn.com/sport/golf",
-    // "https://edition.cnn.com/sport/motorsport",
-    // "https://edition.cnn.com/sport/paris-olympics-2024",
-    // "https://edition.cnn.com/health",
-    // "https://edition.cnn.com/health/life-but-better/sleep",
-    // "https://edition.cnn.com/health/life-but-better/mindfulness",
-    // "https://edition.cnn.com/health/life-but-better/relationships",
-    // "https://edition.cnn.com/world/china",
-    // "https://edition.cnn.com/world/europe/ukraine",
-    // "https://edition.cnn.com/travel",
-    // "https://edition.cnn.com/travel/news",
+    "https://edition.cnn.com/politics",
+    "https://edition.cnn.com/politics/president-donald-trump-47",
+    "https://edition.cnn.com/politics/fact-check",
+    "https://edition.cnn.com/entertainment",
+    "https://edition.cnn.com/entertainment/movies",
+    "https://edition.cnn.com/entertainment/tv-shows",
+    "https://edition.cnn.com/entertainment/celebrities",
+    "https://edition.cnn.com/weather",
+    "https://edition.cnn.com/business",
+    "https://edition.cnn.com/business/tech",
+    "https://edition.cnn.com/business/media",
+    "https://edition.cnn.com/style",
+    "https://edition.cnn.com/style/arts",
+    "https://edition.cnn.com/style/fashion",
+    "https://edition.cnn.com/style/beauty",
+    "https://edition.cnn.com/style/design",
+    "https://edition.cnn.com/sport",
+    "https://edition.cnn.com/sport/football",
+    "https://edition.cnn.com/sport/tennis",
+    "https://edition.cnn.com/sport/golf",
+    "https://edition.cnn.com/sport/motorsport",
+    "https://edition.cnn.com/sport/paris-olympics-2024",
+    "https://edition.cnn.com/health",
+    "https://edition.cnn.com/health/life-but-better/sleep",
+    "https://edition.cnn.com/health/life-but-better/mindfulness",
+    "https://edition.cnn.com/health/life-but-better/relationships",
+    "https://edition.cnn.com/world/china",
+    "https://edition.cnn.com/world/europe/ukraine",
+    "https://edition.cnn.com/travel",
+    "https://edition.cnn.com/travel/news",
     "https://edition.cnn.com/travel/food-and-drink",
-    // "https://edition.cnn.com/climate",
-    // "https://edition.cnn.com/us/crime-and-justice",
-    // "https://edition.cnn.com/science",
-    // "https://edition.cnn.com/science/space"
+    "https://edition.cnn.com/climate",
+    "https://edition.cnn.com/us/crime-and-justice",
+    "https://edition.cnn.com/science",
+    "https://edition.cnn.com/science/space"
   ];
   for (const baseURL of baseURLs) {
     await scrapeCNN(baseURL);
@@ -131,7 +131,7 @@ async function scrapeCNN(baseURL) {
     });
 
     console.log(`Tìm thấy ${articles.length} bài. Lấy 3 bài đầu để test.`);
-    const selected = articles.slice(0, 30);
+    const selected = articles.slice(0, 10);
 
     for (const article of selected) {
       console.log(`\nXử lý: ${article.title}`);
