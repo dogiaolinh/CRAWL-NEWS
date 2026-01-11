@@ -241,7 +241,7 @@ async function scrapeCNN(baseURL) {
       }
     });
 
-    console.log(`Tìm thấy ${articles.length} bài. Lấy 3 bài đầu để test.`);
+    console.log(`Tìm thấy ${articles.length} bài. Lấy 10 bài đầu để test.`);
     const selected = articles.slice(0, 10);
 
     for (const article of selected) {
@@ -300,55 +300,52 @@ async function scrapeCNN(baseURL) {
           console.log("Bài báo Live");
           content_html = extractLiveContent($);
         } else {
-          console.log("Bài báo thường");
           const contentBlocks = [];
 
+          // Lấy từng phần tử theo đúng thứ tự trong bài
           $(".article__content > *").each((_, el) => {
             const $el = $(el);
 
+            // 1. Nếu là <p> — giữ nguyên HTML bên trong (có thể chứa <img>)
             if ($el.is("p")) {
+              // 🧹 Xóa các thẻ <a> trỏ đến cnn.com, nhưng giữ lại text bên trong
               $el.find("a").each((_, a) => {
                 const href = $(a).attr("href") || "";
-                if (
-                  href.includes("cnn.com") ||
-                  href.includes("outlook.com") ||
-                  href.includes("reuters.com")
-                ) {
+                if (href.includes("cnn.com") || href.includes("outlook.com") || href.includes("reuters.com") ) {
                   $(a).replaceWith($(a).text());
                 }
               });
 
               const innerHTML = $el.html().trim();
-              if (innerHTML) contentBlocks.push(`<p>${innerHTML}</p>`);
-            } else if (
-              $el.is("div[data-component-name='image']") ||
-              $el.hasClass("image__container")
-            ) {
+              if (innerHTML) {
+                contentBlocks.push(`<p>${innerHTML}</p>`);
+              }
+            }
+
+            // 2. Nếu là khối ảnh (div[data-component-name='image'] hoặc .image__container)
+            else if ($el.is("div[data-component-name='image']") || $el.hasClass("image__container")) {
               const img = $el.find("img").first();
-              const src =
-                img.attr("data-src-large") ||
-                img.attr("data-src") ||
-                img.attr("src");
+              const src = img.attr("data-src-large") || img.attr("data-src") || img.attr("src");
               const alt = img.attr("alt") || "";
-              imageList.push({ src, alt, isThumbnail: false })
+              // const caption = $el.find("figcaption, .image__caption, .image__credit").text().trim();
+
               if (src) {
                 const imgTag = `<img src="${src}" alt="${alt}">`;
-                const captionTag = alt ? `<em>${alt}</em>` : "";
-                contentBlocks.push(
-                  `<p style="text-align: center;">${imgTag}${captionTag}</p>`
-                );
+                // const captionTag = caption ? `<em>${caption}</em>` : "";
+                const captionTag = `<em>${alt}</em>`;
+                contentBlocks.push(`<p style="text-align: center;">${imgTag}${captionTag}</p>`);
               }
-            } else if (
-              $el.hasClass("graphic-elevate") ||
-              $el.is("div[data-component-name='graphic']")
-            ) {
+            }
+            else if ($el.hasClass("graphic-elevate") || $el.is("div[data-component-name='graphic']")) {
               const graphicAnchor = $el.find(".graphic__anchor").first();
+
               const pymSrc = graphicAnchor.attr("data-pym-src");
               const iframe = graphicAnchor.find("iframe").first();
               const iframeSrc = iframe.attr("src");
-              const finalSrc = pymSrc || iframeSrc;
 
+              const finalSrc = pymSrc || iframeSrc;
               if (finalSrc) {
+                // Bạn có thể style theo ý riêng
                 contentBlocks.push(`
                   <div style="margin: 20px 0;">
                     <iframe 
@@ -363,10 +360,14 @@ async function scrapeCNN(baseURL) {
                 `);
               }
             }
+
+
+            // 3. Bỏ qua các phần tử không cần (quảng cáo, script, v.v.)
           });
 
           content_html = contentBlocks.join("\n");
-        }
+          // console.log(content_html);
+          }
 
         if (!content_html.trim()) {
           console.log("Bỏ qua: không trích xuất được nội dung");
@@ -436,10 +437,8 @@ async function scrapeCNN(baseURL) {
           body: finalContent,
         }, { headers: { "Content-Type": "application/json" } });
         if(imageList.length > 0){
-          if(!isLive){
             await axios.delete(`https://www.todaynews.blog/api/delete/image/${articleId}`);
             console.log(`Đã xóa ảnh tạm đầu tiên`);
-          }
         }
         console.log(`HOÀN TẤT: ${title} (ID: ${articleId})`);
         success = true;

@@ -46,9 +46,8 @@ const { API_KEYS, buildGeminiUrl } = require("../config/gemini");
     Now rewrite it following all rules above:
     `;
 
-    let keyIndex = 0; // key hiện tại
 
-    for (let attempt = 1; attempt <= retries; attempt++) {
+    for (let keyIndex = 0; keyIndex < API_KEYS.length; keyIndex++) {
       const apiKey = API_KEYS[keyIndex];
       const GEMINI_URL = buildGeminiUrl(apiKey);
 
@@ -71,35 +70,26 @@ const { API_KEYS, buildGeminiUrl } = require("../config/gemini");
 
         const result =
           response.data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-        // console.log(`Ket qua Text: ${text}`);
-        // console.log(`Ket qua Dich: ${result}`);
+
         return result || text;
       } catch (err) {
         const status = err.response?.status;
 
         console.error(
-          `❌ Lỗi gọi Gemini (key ${keyIndex + 1}/${API_KEYS.length}, thử ${attempt}/${retries}):`,
-          err.message
+          `❌ Gemini lỗi (key ${keyIndex + 1}/${API_KEYS.length})`,
+          {
+            status,
+            message: err.response?.data || err.message,
+          }
         );
 
-        // 👉 Nếu bị rate limit thì đổi API key
-        if (status === 429) {
-          keyIndex++;
-
-          if (keyIndex >= API_KEYS.length) {
-            console.error("🚫 Đã hết API key khả dụng");
-            return text;
-          }
-
-          console.warn(
-            `🔁 Đổi sang API key ${keyIndex + 1}/${API_KEYS.length}`
-          );
-        }
-
-        // Nếu đã retry hết
-        if (attempt === retries) {
+        // 👉 nếu là lỗi cuối cùng → fallback
+        if (keyIndex === API_KEYS.length - 1) {
+          console.error("🚫 Tất cả API key đều lỗi");
           return text;
         }
+
+        console.warn(`🔁 Chuyển sang API key ${keyIndex + 2}`);
       }
     }
   }
