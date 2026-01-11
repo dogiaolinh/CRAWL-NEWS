@@ -25,7 +25,14 @@ async function uploadImage(imageUrl, altText, articleId) {
     return newUrl; // → /storage/images/2025/11/...
   } catch (err) {
     console.error(`Lỗi upload ảnh: ${err.response?.data || err.message}`);
-    return imageUrl; // Fallback
+    if (err.response) {
+      console.error("❌ Lỗi upload ảnh (response):", err.response.data);
+      console.error("Status:", err.response.status);
+    } else if (err.request) {
+      console.error("❌ Không nhận được response:", err.request);
+    } else {
+      console.error("❌ Lỗi:", err.message);
+    }
   }
 }
 
