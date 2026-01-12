@@ -265,7 +265,6 @@ async function scrapeCNN(baseURL) {
         console.log(slug);
         // Kiểm tra slug tồn tại
         const slugExists = await checkSlugExists(slug);
-
         if (slugExists) {
           if(isLive){
             await axios.delete(`https://www.todaynews.blog/api/article/${slug}`);
@@ -410,6 +409,7 @@ async function scrapeCNN(baseURL) {
         let rewritten = "";
         for (const chunk of chunks) {
           rewritten += await callGeminiAPI(chunk);
+          await new Promise(resolve => setTimeout(resolve, 2000));
         }
         console.log("Đã chuyển đổi hoàn tất.");
         // console.log(rewritten);
@@ -441,8 +441,8 @@ async function scrapeCNN(baseURL) {
         }
         console.log(`HOÀN TẤT: ${title} (ID: ${articleId})`);
         success = true;
-        // console.log("Đợi 5s!");
-        // await new Promise(r => setTimeout(r, 5000));
+        console.log("Đợi 3s!");
+        await new Promise(r => setTimeout(r, 3000));
         results.push({ 
           title, 
           url: article.link, 
