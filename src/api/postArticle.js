@@ -96,6 +96,7 @@ async function postToAPI(article) {
       status: 1,
       category_id: categoryId,
       user_id: 1,
+      is_live: article.isLive,
     };
 
     const res = await axios.post(`${BASE_URL}/articles`, payload, {
