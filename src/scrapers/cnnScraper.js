@@ -276,7 +276,7 @@ async function scrapeCNN(baseURL) {
           }
         }
         const title = $("h1").first().text().trim() || article.title;
-        let categories = extractCategoriesFromURL(article.link);
+        let categories = extractCategoriesFromURL(baseURL);
         
         if (categories.length === 0) {
           // fallback sang breadcrumb nếu URL không có category rõ ràng
