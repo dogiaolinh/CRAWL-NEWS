@@ -399,6 +399,7 @@ async function scrapeCNN(baseURL) {
           category_1 : categories[0],
           editor_choice: isEditorChoice,
           category_2: categories[1] || null,
+          isLive
         });
         await uploadImage("https://www.shutterstock.com/image-vector/breaking-news-sign-on-globe-600nw-2622724291.jpg", title, articleId);
 

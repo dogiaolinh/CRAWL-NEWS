@@ -41,7 +41,7 @@ async function createChildCategory(name, parentId) {
 // 🧠 Tạo bài viết
 async function postToAPI(article) {
   try {
-    let categoryId = 1;
+    let categoryId = 7; //Để mặc định là thư mục World
     let parentCategoryId = null;
 
     // ✅ 1. Tìm category cha (đã có sẵn trong DB)
@@ -82,7 +82,17 @@ async function postToAPI(article) {
         console.log(`🆕 Tạo danh mục con: ${article.category_2} (parent_id=${parentCategoryId})`);
       }
     }
+    if(article.isLive){
+      const existingChild = await findCategoryByName("Live News");
 
+      if (existingChild) {
+        categoryId = existingChild.id;
+      } else {
+        const newChildId = await createChildCategory("live-news", null);
+        categoryId = newChildId;
+        console.log(`🆕 Tạo danh mục con: live-news (parent_id=null)`);
+      }
+    }
     // ✅ 3. Gửi bài viết lên
     const payload = {
       title: article.title,
