@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const { fetchArticleHTML } = require("../utils/fetchHtml");
 const { splitIntoChunks } = require("../utils/chunkSplitter");
-const { callGeminiAPI } = require("../utils/apiCaller");
+const { paraphraseText } = require("../utils/apiCaller");
 const { postToAPI } = require("../api/postArticle");
 const { uploadImage } = require("../api/uploadImage");
 const axios = require("axios");
@@ -409,7 +409,7 @@ async function scrapeCNN(baseURL) {
         const chunks = splitIntoChunks(content_html);
         let rewritten = "";
         for (const chunk of chunks) {
-          rewritten += await callGeminiAPI(chunk);
+          rewritten += await paraphraseText(chunk);
           await new Promise(resolve => setTimeout(resolve, 2000));
         }
         console.log("Đã chuyển đổi hoàn tất.");
