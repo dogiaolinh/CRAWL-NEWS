@@ -4,13 +4,13 @@ require("dotenv").config();
 
 // === CẤU HÌNH CÁC PROVIDER ===
 const PROVIDERS = [
-  {
-    name: "Gemini",
-    keys: process.env.GEMINI_API_KEYS ? process.env.GEMINI_API_KEYS.split(",").map(k => k.trim()) : [],
-    urlBuilder: (key) => `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
-    format: "gemini",
-    model: "gemini-2.5-flash",
-  },
+  // {
+  //   name: "Gemini",
+  //   keys: process.env.GEMINI_API_KEYS ? process.env.GEMINI_API_KEYS.split(",").map(k => k.trim()) : [],
+  //   urlBuilder: (key) => `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
+  //   format: "gemini",
+  //   model: "gemini-2.5-flash",
+  // },
   {
     name: "Groq",
     keys: process.env.GROQ_API_KEYS ? process.env.GROQ_API_KEYS.split(",").map(k => k.trim()) : [],
@@ -146,11 +146,11 @@ async function paraphraseText(text) {
           });
           const result = response.data.choices?.[0]?.message?.content?.trim();
           if (result && result.length > 100) {
-            console.log(`  Thành công với ${provider.name}`);
-            console.log(text);
-            console.log("-------------------------------------------------------------------------");
+            // console.log(`  Thành công với ${provider.name}`);
+            // console.log(text);
+            // console.log("-------------------------------------------------------------------------");
 
-            console.log(result);
+            // console.log(result);
             return result;
           }
         }
