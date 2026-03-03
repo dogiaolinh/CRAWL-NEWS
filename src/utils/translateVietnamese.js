@@ -153,8 +153,8 @@ async function translateText(text, isTitle = false) {
 
 // === TOOL CHÍNH: Dịch các bài thiếu tiếng Việt ===
 async function translateMissingVietnameseArticles() {
-  const GET_URL = "http://localhost:8000/api/articles/missing-vi";
-  const POST_BASE_URL = "http://localhost:8000/api/articles/";
+  const GET_URL = "https://www.todaynews.blog/api/articles/missing-vi";
+  const POST_BASE_URL = "https://www.todaynews.blog/api/articles/";
 
   try {
     console.log("Đang lấy danh sách bài thiếu tiếng Việt...");
