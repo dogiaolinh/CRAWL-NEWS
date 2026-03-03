@@ -1,6 +1,6 @@
 const axios = require("axios");
 
-const BASE_URL = "https://www.todaynews.blog/api";
+const BASE_URL = "http://localhost:8000/api";
 
 function formatCategoryName(name) {
   return name
