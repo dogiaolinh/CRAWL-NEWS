@@ -142,7 +142,7 @@ function extractLiveContent($) {
 }
 async function checkSlugExists(slug) {
   try {
-    const response = await axios.get(`https://www.todaynews.blog/api/check-slug/${slug}`);
+    const response = await axios.get(`http://127.0.0.1:8000/api/check-slug/${slug}`);
     return response.data.exists === true;
   } catch (error) {
     console.error('Lỗi kiểm tra slug:', error);
@@ -267,7 +267,7 @@ async function scrapeCNN(baseURL) {
         const slugExists = await checkSlugExists(slug);
         if (slugExists) {
           if(isLive){
-            await axios.delete(`https://www.todaynews.blog/api/article/${slug}`);
+            await axios.delete(`http://127.0.0.1:8000/api/article/${slug}`);
           }else{
             // Slug đã tồn tại → bỏ qua việc post bài này
             console.log(`Slug "${slug}" đã tồn tại, bỏ qua đăng bài.`);
@@ -452,11 +452,11 @@ else if (
         }
 
         // === 7. CẬP NHẬT BÀI VIẾT ===
-        await axios.put(`https://www.todaynews.blog/api/edit/article/${articleId}`, {
+        await axios.put(`http://127.0.0.1:8000/api/edit/article/${articleId}`, {
           body: finalContent,
         }, { headers: { "Content-Type": "application/json" } });
         if(imageList.length > 0){
-            await axios.delete(`https://www.todaynews.blog/api/delete/image/${articleId}`);
+            await axios.delete(`http://127.0.0.1:8000/api/delete/image/${articleId}`);
             console.log(`Đã xóa ảnh tạm đầu tiên`);
         }
         console.log(`HOÀN TẤT: ${title} (ID: ${articleId})`);

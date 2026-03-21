@@ -13,7 +13,7 @@ async function uploadImage(imageUrl, altText, articleId) {
     form.append("imageable_id", articleId);
     form.append("user_id", 1);
 
-    const uploadRes = await axios.post("https://www.todaynews.blog/api/images/upload", form, {
+    const uploadRes = await axios.post("http://127.0.0.1:8000/api/images/upload", form, {
       headers: form.getHeaders(),
       timeout: 60000,
     });
