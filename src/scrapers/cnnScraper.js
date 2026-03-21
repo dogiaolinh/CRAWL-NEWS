@@ -1,7 +1,7 @@
 const cheerio = require("cheerio");
 const fs = require("fs");
 const path = require("path");
-const { fetchArticleHTML } = require("../utils/fetchHtml");
+const { fetchArticleHTML, fetchArticleHTMLWithJS } = require("../utils/fetchHtml");
 const { splitIntoChunks } = require("../utils/chunkSplitter");
 const { paraphraseText } = require("../utils/apiCaller");
 const { postToAPI } = require("../api/postArticle");
@@ -252,7 +252,7 @@ async function scrapeCNN(baseURL) {
 
       let success = false;
       try {
-        const html = await fetchArticleHTML(article.link);
+        const html = await fetchArticleHTMLWithJS(article.link);
         console.log(article.link);
         const $ = cheerio.load(html);
         const isEditorChoice = homepageLinks.has(article.link.split("?")[0]);
@@ -359,7 +359,26 @@ async function scrapeCNN(baseURL) {
               }
             }
 
-
+else if (
+              $el.is('div[data-component-name="interactive-video"]') ||
+              $el.hasClass("interactive-video-elevate")
+            ) {
+              const videoUrlsRaw = $("div#__video_urls__").attr("data-urls") || "[]";
+              let videoUrls = [];
+              try { videoUrls = JSON.parse(videoUrlsRaw); } catch(_) {}
+              const videoSrc = videoUrls[0] || null;
+              if (videoSrc) {
+                contentBlocks.push(`
+                  <div style="margin: 24px 0; text-align: center;">
+                    <video autoplay muted loop playsinline
+                      style="max-width: 100%; border-radius: 8px;">
+                      <source src="${videoSrc}" type="video/mp4">
+                    </video>
+                  </div>
+                `);
+                videoUrls.shift();
+              }
+            }
             // 3. Bỏ qua các phần tử không cần (quảng cáo, script, v.v.)
           });
 
