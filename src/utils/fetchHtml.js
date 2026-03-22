@@ -24,13 +24,27 @@ async function fetchArticleHTMLWithJS(url) {
   });
   try {
     const page = await browser.newPage();
-    const videoUrls = [];
+    const videoUrls = []; // { slug, url, width }
 
     await page.setRequestInterception(true);
     page.on("request", (req) => {
       const u = req.url();
       if (u.includes("media.cnn.com") && u.includes(".mp4")) {
-        videoUrls.push(u);
+        const wMatch = u.match(/w_(\d+)/);
+        const width = wMatch ? parseInt(wMatch[1]) : 0;
+        const slugMatch = u.match(/prod\/([^?]+\.mp4)/);
+        const videoSlug = slugMatch ? slugMatch[1] : null;
+        if (!videoSlug) { req.continue(); return; }
+
+        const existing = videoUrls.find(v => v.slug === videoSlug);
+        if (existing) {
+          if (width > existing.width) {
+            existing.url = u;
+            existing.width = width;
+          }
+        } else {
+          videoUrls.push({ slug: videoSlug, url: u, width });
+        }
       }
       req.continue();
     });
@@ -38,9 +52,10 @@ async function fetchArticleHTMLWithJS(url) {
     await page.goto(url, { waitUntil: "networkidle2", timeout: 60000 });
     const html = await page.content();
 
+    const finalUrls = videoUrls.map(v => v.url);
     const injected = html.replace(
       "</body>",
-      `<div id="__video_urls__" data-urls='${JSON.stringify(videoUrls)}'></div></body>`
+      `<div id="__video_urls__" data-urls='${JSON.stringify(finalUrls)}'></div></body>`
     );
     return injected;
   } finally {

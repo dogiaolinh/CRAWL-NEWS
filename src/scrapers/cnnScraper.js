@@ -368,16 +368,15 @@ else if (
               $el.is('div[data-component-name="interactive-video"]') ||
               $el.hasClass("interactive-video-elevate")
             ) {
-              const videoSrc = videoUrls.shift() || null; // ✅ Lấy lần lượt, dùng biến ngoài
+              const videoSrc = videoUrls.shift() || null;
               if (videoSrc) {
-                contentBlocks.push(`
-                  <div style="margin: 24px 0; text-align: center;">
-                    <video autoplay muted loop playsinline
-                      style="max-width: 100%; border-radius: 8px;">
-                      <source src="${videoSrc}" type="video/mp4">
-                    </video>
-                  </div>
-                `);
+                contentBlocks.push(
+                  '<div style="margin:24px 0;">' +
+                  '<video autoplay muted loop playsinline width="100%" style="border-radius:8px;display:block;">' +
+                  '<source src="' + videoSrc + '" type="video/mp4">' +
+                  '</video>' +
+                  '</div>'
+                );
               }
             }
             // 3. Bỏ qua các phần tử không cần (quảng cáo, script, v.v.)

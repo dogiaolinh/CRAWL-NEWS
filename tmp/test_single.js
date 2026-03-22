@@ -43,7 +43,7 @@ const TEST_URL = 'https://edition.cnn.com/2026/03/21/style/bts-arirang-comeback-
   const content_html = contentBlocks.join('\n');
   console.log('Content blocks:', contentBlocks.length);
 
-  const slug = 'bts-arirang-test-video-1';
+  const slug = 'bts-arirang-test-video-20';
   const { articleId } = await postToAPI({
     title,
     slug,
