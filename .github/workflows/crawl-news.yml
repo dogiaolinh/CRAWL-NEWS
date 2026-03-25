@@ -9,26 +9,36 @@ on:
     - cron: '0 14 * * *'
     - cron: '30 17 * * *'
     - cron: '0 21 * * *'
-  
+
   workflow_dispatch:
 
 jobs:
   crawl-and-post:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20'  # ⬅️ Đổi từ 18 sang 20
+          node-version: '20'
           cache: 'npm'
-      
+
+      - name: Install Puppeteer system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            chromium-browser \
+            libatk-bridge2.0-0 \
+            libdrm2 \
+            libxkbcommon0 \
+            libgbm1
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Run crawler
         run: node src/index.js
         env:
@@ -36,4 +46,4 @@ jobs:
           GROQ_API_KEYS: ${{ secrets.GROQ_API_KEYS }}
           MISTRAL_API_KEYS: ${{ secrets.MISTRAL_API_KEYS }}
           OPENROUTER_API_KEYS: ${{ secrets.OPENROUTER_API_KEYS }}
-          
+          PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium-browser

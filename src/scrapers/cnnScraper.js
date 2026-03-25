@@ -1,12 +1,13 @@
 const cheerio = require("cheerio");
 const fs = require("fs");
 const path = require("path");
-const { fetchArticleHTML } = require("../utils/fetchHtml");
+const { fetchArticleHTML, fetchArticleHTMLWithJS } = require("../utils/fetchHtml");
 const { splitIntoChunks } = require("../utils/chunkSplitter");
 const { paraphraseText } = require("../utils/apiCaller");
 const { postToAPI } = require("../api/postArticle");
 const { uploadImage } = require("../api/uploadImage");
 const axios = require("axios");
+
 function extractCategoriesFromURL(url) {
   try {
     const u = new URL(url);
@@ -29,6 +30,7 @@ function extractCategoriesFromURL(url) {
     return [];
   }
 }
+
 function extractLiveContent($) {
   const contentBlocks = [];
 
@@ -142,20 +144,20 @@ function extractLiveContent($) {
 }
 async function checkSlugExists(slug) {
   try {
-    const response = await axios.get(`https://www.todaynews.blog/api/check-slug/${slug}`);
+    const response = await axios.get(`http://127.0.0.1:8000/api/check-slug/${slug}`);
     return response.data.exists === true;
   } catch (error) {
     console.error('Lỗi kiểm tra slug:', error);
     return false; // Nếu lỗi, giả sử không tồn tại để tránh block
   }
 }
+
 async function scrapeAll() {
   const baseURLs = [
     "https://edition.cnn.com/",
     "https://edition.cnn.com/world",
     "https://edition.cnn.com/us",
     "https://edition.cnn.com/health/life-but-better/fitness",
-
     "https://edition.cnn.com/politics",
     "https://edition.cnn.com/politics/president-donald-trump-47",
     "https://edition.cnn.com/politics/fact-check",
@@ -195,8 +197,8 @@ async function scrapeAll() {
     await scrapeCNN(baseURL);
   }
 }
-async function scrapeCNN(baseURL) {
 
+async function scrapeCNN(baseURL) {
   const results = [];
 
   try {
@@ -252,7 +254,7 @@ async function scrapeCNN(baseURL) {
 
       let success = false;
       try {
-        const html = await fetchArticleHTML(article.link);
+        const html = await fetchArticleHTMLWithJS(article.link);
         console.log(article.link);
         const $ = cheerio.load(html);
         const isEditorChoice = homepageLinks.has(article.link.split("?")[0]);
@@ -267,7 +269,7 @@ async function scrapeCNN(baseURL) {
         const slugExists = await checkSlugExists(slug);
         if (slugExists) {
           if(isLive){
-            await axios.delete(`https://www.todaynews.blog/api/article/${slug}`);
+            await axios.delete(`http://127.0.0.1:8000/api/article/${slug}`);
           }else{
             // Slug đã tồn tại → bỏ qua việc post bài này
             console.log(`Slug "${slug}" đã tồn tại, bỏ qua đăng bài.`);
@@ -299,6 +301,11 @@ async function scrapeCNN(baseURL) {
           content_html = extractLiveContent($);
         } else {
           const contentBlocks = [];
+
+                    // ✅ Parse video URLs 1 lần trước khi duyệt content
+          const videoUrlsRaw = $("div#__video_urls__").attr("data-urls") || "[]";
+          let videoUrls = [];
+          try { videoUrls = JSON.parse(videoUrlsRaw); } catch(_) {}
 
           // Lấy từng phần tử theo đúng thứ tự trong bài
           $(".article__content > *").each((_, el) => {
@@ -359,7 +366,21 @@ async function scrapeCNN(baseURL) {
               }
             }
 
-
+else if (
+              $el.is('div[data-component-name="interactive-video"]') ||
+              $el.hasClass("interactive-video-elevate")
+            ) {
+              const videoSrc = videoUrls.shift() || null;
+              if (videoSrc) {
+                contentBlocks.push(
+                  '<div style="margin:24px 0;">' +
+                  '<video autoplay muted loop playsinline width="100%" style="border-radius:8px;display:block;">' +
+                  '<source src="' + videoSrc + '" type="video/mp4">' +
+                  '</video>' +
+                  '</div>'
+                );
+              }
+            }
             // 3. Bỏ qua các phần tử không cần (quảng cáo, script, v.v.)
           });
 
@@ -433,11 +454,11 @@ async function scrapeCNN(baseURL) {
         }
 
         // === 7. CẬP NHẬT BÀI VIẾT ===
-        await axios.put(`https://www.todaynews.blog/api/edit/article/${articleId}`, {
+        await axios.put(`http://127.0.0.1:8000/api/edit/article/${articleId}`, {
           body: finalContent,
         }, { headers: { "Content-Type": "application/json" } });
         if(imageList.length > 0){
-            await axios.delete(`https://www.todaynews.blog/api/delete/image/${articleId}`);
+            await axios.delete(`http://127.0.0.1:8000/api/delete/image/${articleId}`);
             console.log(`Đã xóa ảnh tạm đầu tiên`);
         }
         console.log(`HOÀN TẤT: ${title} (ID: ${articleId})`);
