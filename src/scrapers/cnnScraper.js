@@ -247,8 +247,13 @@ async function scrapeCNN(baseURL) {
 
     for (const article of selected) {
       console.log(`\nXử lý: ${article.title}`);
-      if (article.link.includes("video")) {
-        console.log("Bỏ qua video.");
+      const isVideoPurePage = 
+        article.link.includes("/videos/") ||
+        article.link.match(/\/video\/[a-z]/i) ||
+        article.link.includes("cnn.com/video");
+
+      if (isVideoPurePage) {
+        console.log("Bỏ qua trang video thuần.");
         continue;
       }
 
