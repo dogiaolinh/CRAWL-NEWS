@@ -152,44 +152,44 @@ async function checkSlugExists(slug) {
 async function scrapeAll() {
   const baseURLs = [
     "https://edition.cnn.com/",
-    "https://edition.cnn.com/world",
-    "https://edition.cnn.com/us",
-    "https://edition.cnn.com/health/life-but-better/fitness",
+    // "https://edition.cnn.com/world",
+    // "https://edition.cnn.com/us",
+    // "https://edition.cnn.com/health/life-but-better/fitness",
 
-    "https://edition.cnn.com/politics",
-    "https://edition.cnn.com/politics/president-donald-trump-47",
-    "https://edition.cnn.com/politics/fact-check",
-    "https://edition.cnn.com/entertainment",
-    "https://edition.cnn.com/entertainment/movies",
-    "https://edition.cnn.com/entertainment/tv-shows",
-    "https://edition.cnn.com/entertainment/celebrities",
-    "https://edition.cnn.com/weather",
-    "https://edition.cnn.com/business",
-    "https://edition.cnn.com/business/tech",
-    "https://edition.cnn.com/business/media",
-    "https://edition.cnn.com/style",
-    "https://edition.cnn.com/style/arts",
-    "https://edition.cnn.com/style/fashion",
-    "https://edition.cnn.com/style/beauty",
-    "https://edition.cnn.com/style/design",
-    "https://edition.cnn.com/sport",
-    "https://edition.cnn.com/sport/football",
-    "https://edition.cnn.com/sport/tennis",
-    "https://edition.cnn.com/sport/golf",
-    "https://edition.cnn.com/sport/motorsport",
-    "https://edition.cnn.com/health",
-    "https://edition.cnn.com/health/life-but-better/sleep",
-    "https://edition.cnn.com/health/life-but-better/mindfulness",
-    "https://edition.cnn.com/health/life-but-better/relationships",
-    "https://edition.cnn.com/world/china",
-    "https://edition.cnn.com/world/europe/ukraine",
-    "https://edition.cnn.com/travel",
-    "https://edition.cnn.com/travel/news",
-    "https://edition.cnn.com/travel/food-and-drink",
-    "https://edition.cnn.com/climate",
-    "https://edition.cnn.com/us/crime-and-justice",
-    "https://edition.cnn.com/science",
-    "https://edition.cnn.com/science/space"
+    // "https://edition.cnn.com/politics",
+    // "https://edition.cnn.com/politics/president-donald-trump-47",
+    // "https://edition.cnn.com/politics/fact-check",
+    // "https://edition.cnn.com/entertainment",
+    // "https://edition.cnn.com/entertainment/movies",
+    // "https://edition.cnn.com/entertainment/tv-shows",
+    // "https://edition.cnn.com/entertainment/celebrities",
+    // "https://edition.cnn.com/weather",
+    // "https://edition.cnn.com/business",
+    // "https://edition.cnn.com/business/tech",
+    // "https://edition.cnn.com/business/media",
+    // "https://edition.cnn.com/style",
+    // "https://edition.cnn.com/style/arts",
+    // "https://edition.cnn.com/style/fashion",
+    // "https://edition.cnn.com/style/beauty",
+    // "https://edition.cnn.com/style/design",
+    // "https://edition.cnn.com/sport",
+    // "https://edition.cnn.com/sport/football",
+    // "https://edition.cnn.com/sport/tennis",
+    // "https://edition.cnn.com/sport/golf",
+    // "https://edition.cnn.com/sport/motorsport",
+    // "https://edition.cnn.com/health",
+    // "https://edition.cnn.com/health/life-but-better/sleep",
+    // "https://edition.cnn.com/health/life-but-better/mindfulness",
+    // "https://edition.cnn.com/health/life-but-better/relationships",
+    // "https://edition.cnn.com/world/china",
+    // "https://edition.cnn.com/world/europe/ukraine",
+    // "https://edition.cnn.com/travel",
+    // "https://edition.cnn.com/travel/news",
+    // "https://edition.cnn.com/travel/food-and-drink",
+    // "https://edition.cnn.com/climate",
+    // "https://edition.cnn.com/us/crime-and-justice",
+    // "https://edition.cnn.com/science",
+    // "https://edition.cnn.com/science/space"
   ];
   for (const baseURL of baseURLs) {
     await scrapeCNN(baseURL);
@@ -300,6 +300,11 @@ async function scrapeCNN(baseURL) {
         } else {
           const contentBlocks = [];
 
+                    // ✅ Parse video URLs 1 lần trước khi duyệt content
+          const videoUrlsRaw = $("div#__video_urls__").attr("data-urls") || "[]";
+          let videoUrls = [];
+          try { videoUrls = JSON.parse(videoUrlsRaw); } catch(_) {}
+
           // Lấy từng phần tử theo đúng thứ tự trong bài
           $(".article__content > *").each((_, el) => {
             const $el = $(el);
@@ -363,20 +368,15 @@ else if (
               $el.is('div[data-component-name="interactive-video"]') ||
               $el.hasClass("interactive-video-elevate")
             ) {
-              const videoUrlsRaw = $("div#__video_urls__").attr("data-urls") || "[]";
-              let videoUrls = [];
-              try { videoUrls = JSON.parse(videoUrlsRaw); } catch(_) {}
-              const videoSrc = videoUrls[0] || null;
+              const videoSrc = videoUrls.shift() || null;
               if (videoSrc) {
-                contentBlocks.push(`
-                  <div style="margin: 24px 0; text-align: center;">
-                    <video autoplay muted loop playsinline
-                      style="max-width: 100%; border-radius: 8px;">
-                      <source src="${videoSrc}" type="video/mp4">
-                    </video>
-                  </div>
-                `);
-                videoUrls.shift();
+                contentBlocks.push(
+                  '<div style="margin:24px 0;">' +
+                  '<video autoplay muted loop playsinline width="100%" style="border-radius:8px;display:block;">' +
+                  '<source src="' + videoSrc + '" type="video/mp4">' +
+                  '</video>' +
+                  '</div>'
+                );
               }
             }
             // 3. Bỏ qua các phần tử không cần (quảng cáo, script, v.v.)

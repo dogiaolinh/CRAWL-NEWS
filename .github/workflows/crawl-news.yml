@@ -26,6 +26,16 @@ jobs:
           node-version: '20'  # ⬅️ Đổi từ 18 sang 20
           cache: 'npm'
       
+      - name: Install Puppeteer system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            chromium-browser \
+            libatk-bridge2.0-0 \
+            libdrm2 \
+            libxkbcommon0 \
+            libgbm1
+      
       - name: Install dependencies
         run: npm ci
       
@@ -36,4 +46,4 @@ jobs:
           GROQ_API_KEYS: ${{ secrets.GROQ_API_KEYS }}
           MISTRAL_API_KEYS: ${{ secrets.MISTRAL_API_KEYS }}
           OPENROUTER_API_KEYS: ${{ secrets.OPENROUTER_API_KEYS }}
-          
+          PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium-browser
