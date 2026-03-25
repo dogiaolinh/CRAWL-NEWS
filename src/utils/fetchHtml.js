@@ -1,6 +1,6 @@
 // src/utils/fetchHtml.js
 const axios = require("axios");
-const puppeteer = require("puppeteer");
+const puppeteer = require("puppeteer-core");
 
 async function fetchArticleHTML(url) {
   try {
@@ -20,7 +20,7 @@ async function fetchArticleHTML(url) {
 async function fetchArticleHTMLWithJS(url) {
   const browser = await puppeteer.launch({
     headless: "new",
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || null,
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || "/usr/bin/chromium-browser",
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
