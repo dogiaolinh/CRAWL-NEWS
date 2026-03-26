@@ -1,4 +1,5 @@
 const cheerio = require("cheerio");
+const puppeteer = require('puppeteer');
 const fs = require("fs");
 const path = require("path");
 const { fetchArticleHTML, fetchArticleHTMLWithJS } = require("../utils/fetchHtml");
@@ -140,6 +141,66 @@ function extractLiveContent($) {
 
   return contentBlocks.join("\n");
 }
+async function extractVideoLink(articleUrl) {
+  let videoLink = null;
+
+  try {
+    // console.log(`Mở Puppeteer để kiểm tra video: ${articleUrl}`);
+
+    const browser = await puppeteer.launch({
+      headless: true,                // ẩn browser (false để thấy cửa sổ)
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process',          // tiết kiệm RAM
+        '--disable-gpu'
+      ],
+      timeout: 60000
+    });
+
+    const page = await browser.newPage();
+
+    // Tăng timeout cho page
+    await page.setDefaultNavigationTimeout(60000);
+
+    // Theo dõi response để tìm .dash.mpd
+    page.on('response', (response) => {
+      const url = response.url();
+      if (url.includes('.mpd')) {
+        // Ưu tiên fallback (chứa 'fallback' hoặc không có parameters dài)
+        if (url.includes('fallback') || !url.includes('ctx=') || !url.includes('ps=')) {
+          // console.log(`TÌM THẤY FALLBACK MANIFEST (tránh quảng cáo): ${url}`);
+          videoLink = url;  // gán ngay fallback
+        }
+
+        // Chỉ lấy master nếu chưa có fallback (ít xảy ra vì fallback thường load sau)
+        else if (!videoLink && url.includes('dash.mpd')) {
+          // console.log(`Tìm thấy master manifest (có thể có quảng cáo): ${url}`);
+          videoLink = url;
+        }
+      }
+    });
+
+    // Load trang
+    await page.goto(articleUrl, {
+      waitUntil: 'networkidle2',   // chờ network ổn định
+      timeout: 60000
+    });
+
+
+    await browser.close();
+
+    return videoLink;
+
+  } catch (err) {
+    console.error(`Lỗi Puppeteer cho ${articleUrl}:`, err.message);
+    return null;
+  }
+}
 async function checkSlugExists(slug) {
   try {
     const response = await axios.get(`https://www.todaynews.blog/api/check-slug/${slug}`);
@@ -241,13 +302,14 @@ async function scrapeCNN(baseURL) {
     });
 
     console.log(`Tìm thấy ${articles.length} bài. Lấy 10 bài đầu để test.`);
-    const selected = articles.slice(0, 30);
+    const selected = articles.slice(0, 10);
 
     for (const article of selected) {
       console.log(`\nXử lý: ${article.title}`);
+      let isVideo = false;
       if (article.link.includes("video")) {
-        console.log("Bỏ qua video.");
-        continue;
+        // console.log("Bỏ qua báo.");
+        isVideo = true;
       }
 
       let success = false;
@@ -276,7 +338,13 @@ async function scrapeCNN(baseURL) {
           }
         }
         const title = $("h1").first().text().trim() || article.title;
-        let categories = extractCategoriesFromURL(baseURL);
+        let categories;
+        if(isVideo){
+          categories = extractCategoriesFromURL(article.link);
+        }else{
+          categories = extractCategoriesFromURL(baseURL);
+
+        }
         
         if (categories.length === 0) {
           // fallback sang breadcrumb nếu URL không có category rõ ràng
@@ -297,7 +365,60 @@ async function scrapeCNN(baseURL) {
         if (isLive) {
           console.log("Bài báo Live");
           content_html = extractLiveContent($);
-        } else {
+        } else if(isVideo){
+          console.log("Video");
+          const videoLink = await extractVideoLink(article.link);
+          const contentBlocks = [];
+          if (videoLink) {
+            // Lấy mô tả video
+            let description = $('.video-resource__description p, [data-editable="description"] p').text().trim() || '';
+            description = description.replace(/\(CNN\)/gi, '').trim();
+
+            const videoEmbed = `
+              <div style="margin: 20px 0; text-align: center; max-width: 100%;">
+                <video id="video-player" controls width="100%" height="auto"></video>
+
+                ${description ? `<p style="margin-top: 10px; font-style: italic; color: #555;">${description}</p>` : ''}
+
+                <script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>
+                <script>
+                  (function() {
+                    const playerElement = document.getElementById("video-player");
+                    if (!playerElement) {
+                      console.error("Không tìm thấy element video cho ID");
+                      return;
+                    }
+
+                    const url = "${videoLink}";
+
+                    const player = dashjs.MediaPlayer().create();
+                    player.initialize(playerElement, url, false); // false = không autoplay, đổi thành true nếu muốn tự play
+
+                    // Log để debug
+                    player.on(dashjs.MediaPlayer.events.STREAM_INITIALIZED, function() {
+                      console.log("Manifest DASH loaded thành công cho video");
+                    });
+
+                    player.on(dashjs.MediaPlayer.events.ERROR, function(e) {
+                      console.error("Lỗi phát DASH:", e);
+                      playerElement.innerHTML += '<p style="color:red;">Lỗi phát video: ' + (e.error ? e.error.message : 'Unknown') + '</p>';
+                    });
+                  })();
+                </script>
+              </div>
+            `;
+
+            contentBlocks.push(videoEmbed);
+            content_html = contentBlocks.join("\n");
+            // console.log("Đã chèn player DASH với link:", videoLink);
+          } else {
+            console.log("Không tìm thấy manifest .dash.mpd");
+          }
+
+        }
+        else {
+          console.log("Bài báo THường");
+
           const contentBlocks = [];
 
                     // ✅ Parse video URLs 1 lần trước khi duyệt content
@@ -384,7 +505,9 @@ async function scrapeCNN(baseURL) {
 
           content_html = contentBlocks.join("\n");
           // console.log(content_html);
-          }
+        }
+        let cate_2 = !isVideo ? categories[1] : null;
+        // console.log(cate_2);
 
         if (!content_html.trim()) {
           // DEBUG: kiểm tra các selector thực tế có trong trang
@@ -427,7 +550,7 @@ async function scrapeCNN(baseURL) {
           published_at: new Date().toISOString().slice(0, 19).replace("T", " "),
           category_1 : categories[0],
           editor_choice: isEditorChoice,
-          category_2: categories[1] || null,
+          category_2: cate_2,
           isLive
         });
         await uploadImage("https://www.shutterstock.com/image-vector/breaking-news-sign-on-globe-600nw-2622724291.jpg", title, articleId);
@@ -437,9 +560,13 @@ async function scrapeCNN(baseURL) {
         console.log("Đang chuyển đổi ngữ nghĩa...");
         const chunks = splitIntoChunks(content_html);
         let rewritten = "";
-        for (const chunk of chunks) {
-          rewritten += await paraphraseText(chunk);
-          await new Promise(resolve => setTimeout(resolve, 2000));
+        if(!isVideo){
+          for (const chunk of chunks) {
+            rewritten += await paraphraseText(chunk);
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
+        }else{
+          rewritten = content_html;
         }
         console.log("Đã chuyển đổi hoàn tất.");
         // console.log(rewritten);
