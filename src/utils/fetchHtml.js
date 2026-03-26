@@ -20,7 +20,13 @@ async function fetchArticleHTML(url) { // ✅ Giữ lại function cũ
 async function fetchArticleHTMLWithJS(url) {
   const browser = await puppeteer.launch({
     headless: "new",
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || null, // ✅ THÊM
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage", // ✅ THÊM
+      "--disable-gpu",            // ✅ THÊM
+    ],
   });
   try {
     const page = await browser.newPage();
