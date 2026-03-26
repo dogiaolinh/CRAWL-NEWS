@@ -38,7 +38,7 @@ jobs:
             libnss3 \
             libgtk-3-0 \
             libxss1 \
-            libasound2
+            libasound2t64
       
       - name: Install dependencies
         run: npm install   # ⬅️ ĐỔI TỪ npm ci → npm install (vì thêm package mới chưa có package-lock)
