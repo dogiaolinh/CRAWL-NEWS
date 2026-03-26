@@ -23,9 +23,10 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20'  # ⬅️ Đổi từ 18 sang 20
+          node-version: '20'
           cache: 'npm'
-      - name: Install Puppeteer system dependencies  # ✅ THÊM BƯỚC NÀY
+
+      - name: Install Puppeteer system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -33,10 +34,14 @@ jobs:
             libatk-bridge2.0-0 \
             libdrm2 \
             libxkbcommon0 \
-            libgbm1
+            libgbm1 \
+            libnss3 \
+            libgtk-3-0 \
+            libxss1 \
+            libasound2
       
       - name: Install dependencies
-        run: npm ci
+        run: npm install   # ⬅️ ĐỔI TỪ npm ci → npm install (vì thêm package mới chưa có package-lock)
       
       - name: Run crawler
         run: node src/index.js
@@ -45,5 +50,5 @@ jobs:
           GROQ_API_KEYS: ${{ secrets.GROQ_API_KEYS }}
           MISTRAL_API_KEYS: ${{ secrets.MISTRAL_API_KEYS }}
           OPENROUTER_API_KEYS: ${{ secrets.OPENROUTER_API_KEYS }}
-          PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium-browser  
-          
+          PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium-browser
+          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true  # ⬅️ THÊM: dùng chromium-browser hệ thống, không tải thêm

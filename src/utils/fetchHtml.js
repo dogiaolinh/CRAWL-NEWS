@@ -1,5 +1,8 @@
 const axios = require("axios");
-const puppeteer = require("puppeteer");
+// ĐỔI: dùng puppeteer-extra thay vì puppeteer
+const puppeteer = require("puppeteer-extra");
+const StealthPlugin = require("puppeteer-extra-plugin-stealth");
+puppeteer.use(StealthPlugin());
 
 async function fetchArticleHTML(url) {
   try {
@@ -20,47 +23,54 @@ async function fetchArticleHTMLWithJS(url) {
   console.log(`\n[PUPPETEER] Bắt đầu tải: ${url}`);
 
   const browser = await puppeteer.launch({
-    headless: "new",
+    headless: true, // ĐỔI: "new" → true (stealth hoạt động tốt hơn)
     executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || null,
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
       "--disable-dev-shm-usage",
       "--disable-gpu",
+      "--window-size=1920,1080",
+      "--disable-blink-features=AutomationControlled", // THÊM
     ],
   });
 
-  console.log(`[PUPPETEER] Browser đã khởi động`);
-
   try {
     const page = await browser.newPage();
+
+    // Giả lập trình duyệt thật
+    await page.setViewport({ width: 1920, height: 1080 });
+    await page.setUserAgent(
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    );
+    await page.setExtraHTTPHeaders({
+      "Accept-Language": "en-US,en;q=0.9",
+      Accept:
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
+    });
+
     const videoUrls = [];
-
-    // Log response status
-    page.on("response", async (response) => {
-      if (response.url() === url) {
-        console.log(`[PUPPETEER] HTTP Status: ${response.status()} — ${response.url()}`);
-      }
-    });
-
-    // Log console errors từ page
-    page.on("console", (msg) => {
-      if (msg.type() === "error") {
-        console.log(`[PAGE ERROR] ${msg.text()}`);
-      }
-    });
-
     await page.setRequestInterception(true);
     page.on("request", (req) => {
+      // Block các request không cần để tải nhanh hơn
+      const resourceType = req.resourceType();
+      if (["font", "media"].includes(resourceType)) {
+        req.abort();
+        return;
+      }
       const u = req.url();
       if (u.includes("media.cnn.com") && u.includes(".mp4")) {
         const wMatch = u.match(/w_(\d+)/);
         const width = wMatch ? parseInt(wMatch[1]) : 0;
         const slugMatch = u.match(/prod\/([^?]+\.mp4)/);
         const videoSlug = slugMatch ? slugMatch[1] : null;
-        if (!videoSlug) { req.continue(); return; }
-
-        const existing = videoUrls.find(v => v.slug === videoSlug);
+        if (!videoSlug) {
+          req.continue();
+          return;
+        }
+        const existing = videoUrls.find((v) => v.slug === videoSlug);
         if (existing) {
           if (width > existing.width) {
             existing.url = u;
@@ -73,43 +83,24 @@ async function fetchArticleHTMLWithJS(url) {
       req.continue();
     });
 
-    console.log(`[PUPPETEER] Đang goto page...`);
-    await page.goto(url, { waitUntil: "networkidle2", timeout: 60000 });
-    console.log(`[PUPPETEER] Page đã load xong`);
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
+
+    // Đợi nội dung thực sự xuất hiện
+    try {
+      await page.waitForSelector(".article__content, .live-story-post__wrapper", {
+        timeout: 15000,
+      });
+    } catch (_) {
+      console.warn("[PUPPETEER] Không tìm thấy selector sau 15s, vẫn tiếp tục...");
+    }
 
     const html = await page.content();
 
-    // ============ DEBUG BLOCK ============
-    console.log(`\n========== DEBUG HTML ==========`);
-    console.log(`[DEBUG] Page title    : ${(html.match(/<title[^>]*>(.*?)<\/title>/is)?.[1] || "không có").trim()}`);
-    console.log(`[DEBUG] HTML length   : ${html.length} ký tự`);
-    console.log(`[DEBUG] Has <h1>      : ${/<h1/i.test(html)}`);
-    console.log(`[DEBUG] Has article__content : ${html.includes("article__content")}`);
-    console.log(`[DEBUG] Has live-story-post  : ${html.includes("live-story-post")}`);
-    console.log(`[DEBUG] Has "Access Denied"  : ${html.includes("Access Denied")}`);
-    console.log(`[DEBUG] Has "Just a moment"  : ${html.includes("Just a moment")}`);
-    console.log(`[DEBUG] Has "Enable JavaScript" : ${html.includes("Enable JavaScript")}`);
-    console.log(`[DEBUG] Has "cf-browser-verification" : ${html.includes("cf-browser-verification")}`);
-    console.log(`[DEBUG] Has "recaptcha"      : ${html.toLowerCase().includes("recaptcha")}`);
-    console.log(`[DEBUG] Has "subscribe"      : ${html.toLowerCase().includes("subscribe")}`);
-    console.log(`[DEBUG] Has "paywall"        : ${html.toLowerCase().includes("paywall")}`);
+    // Debug nhanh
+    console.log(`[DEBUG] HTML length: ${html.length}`);
+    console.log(`[DEBUG] Has article__content: ${html.includes("article__content")}`);
 
-    // In ra 2000 ký tự đầu để thấy cấu trúc thực tế
-    console.log(`\n[DEBUG] --- 2000 ký tự đầu của HTML ---`);
-    console.log(html.substring(0, 2000));
-    console.log(`[DEBUG] --- HẾT ĐOẠN ĐẦU ---\n`);
-
-    // In ra phần body (bỏ <head>) để thấy content thực
-    const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-    if (bodyMatch) {
-      console.log(`[DEBUG] --- 3000 ký tự đầu của <body> ---`);
-      console.log(bodyMatch[1].substring(0, 3000));
-      console.log(`[DEBUG] --- HẾT BODY SNIPPET ---\n`);
-    }
-    console.log(`================================\n`);
-    // ============ END DEBUG BLOCK ============
-
-    const finalUrls = videoUrls.map(v => v.url);
+    const finalUrls = videoUrls.map((v) => v.url);
     const injected = html.replace(
       "</body>",
       `<div id="__video_urls__" data-urls='${JSON.stringify(finalUrls)}'></div></body>`
@@ -117,7 +108,6 @@ async function fetchArticleHTMLWithJS(url) {
     return injected;
   } finally {
     await browser.close();
-    console.log(`[PUPPETEER] Browser đã đóng`);
   }
 }
 
