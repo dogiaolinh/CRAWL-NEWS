@@ -1,7 +1,7 @@
 const cheerio = require("cheerio");
 const fs = require("fs");
 const path = require("path");
-const { fetchArticleHTML } = require("../utils/fetchHtml");
+const { fetchArticleHTML, fetchArticleHTMLWithJS } = require("../utils/fetchHtml");
 const { splitIntoChunks } = require("../utils/chunkSplitter");
 const { paraphraseText } = require("../utils/apiCaller");
 const { postToAPI } = require("../api/postArticle");
@@ -252,7 +252,7 @@ async function scrapeCNN(baseURL) {
 
       let success = false;
       try {
-        const html = await fetchArticleHTML(article.link);
+        const html = await fetchArticleHTMLWithJS(article.link);
         console.log(article.link);
         const $ = cheerio.load(html);
         const isEditorChoice = homepageLinks.has(article.link.split("?")[0]);
@@ -299,6 +299,11 @@ async function scrapeCNN(baseURL) {
           content_html = extractLiveContent($);
         } else {
           const contentBlocks = [];
+
+                    // ✅ Parse video URLs 1 lần trước khi duyệt content
+          const videoUrlsRaw = $("div#__video_urls__").attr("data-urls") || "[]";
+          let videoUrls = [];
+          try { videoUrls = JSON.parse(videoUrlsRaw); } catch(_) {}
 
           // Lấy từng phần tử theo đúng thứ tự trong bài
           $(".article__content > *").each((_, el) => {
@@ -359,7 +364,21 @@ async function scrapeCNN(baseURL) {
               }
             }
 
-
+            else if (
+                $el.is('div[data-component-name="interactive-video"]') ||
+                $el.hasClass("interactive-video-elevate")
+              ) {
+                const videoSrc = videoUrls.shift() || null;
+                if (videoSrc) {
+                  contentBlocks.push(
+                    '<div style="margin:24px 0;">' +
+                    '<video autoplay muted loop playsinline width="100%" style="border-radius:8px;display:block;">' +
+                    '<source src="' + videoSrc + '" type="video/mp4">' +
+                    '</video>' +
+                    '</div>'
+                  );
+                }
+              }
             // 3. Bỏ qua các phần tử không cần (quảng cáo, script, v.v.)
           });
 
