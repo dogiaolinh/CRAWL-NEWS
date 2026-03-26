@@ -152,44 +152,44 @@ async function checkSlugExists(slug) {
 async function scrapeAll() {
   const baseURLs = [
     "https://edition.cnn.com/",
-    "https://edition.cnn.com/world",
-    "https://edition.cnn.com/us",
-    "https://edition.cnn.com/health/life-but-better/fitness",
+    // "https://edition.cnn.com/world",
+    // "https://edition.cnn.com/us",
+    // "https://edition.cnn.com/health/life-but-better/fitness",
 
-    "https://edition.cnn.com/politics",
-    "https://edition.cnn.com/politics/president-donald-trump-47",
-    "https://edition.cnn.com/politics/fact-check",
-    "https://edition.cnn.com/entertainment",
-    "https://edition.cnn.com/entertainment/movies",
-    "https://edition.cnn.com/entertainment/tv-shows",
-    "https://edition.cnn.com/entertainment/celebrities",
-    "https://edition.cnn.com/weather",
-    "https://edition.cnn.com/business",
-    "https://edition.cnn.com/business/tech",
-    "https://edition.cnn.com/business/media",
-    "https://edition.cnn.com/style",
-    "https://edition.cnn.com/style/arts",
-    "https://edition.cnn.com/style/fashion",
-    "https://edition.cnn.com/style/beauty",
-    "https://edition.cnn.com/style/design",
-    "https://edition.cnn.com/sport",
-    "https://edition.cnn.com/sport/football",
-    "https://edition.cnn.com/sport/tennis",
-    "https://edition.cnn.com/sport/golf",
-    "https://edition.cnn.com/sport/motorsport",
-    "https://edition.cnn.com/health",
-    "https://edition.cnn.com/health/life-but-better/sleep",
-    "https://edition.cnn.com/health/life-but-better/mindfulness",
-    "https://edition.cnn.com/health/life-but-better/relationships",
-    "https://edition.cnn.com/world/china",
-    "https://edition.cnn.com/world/europe/ukraine",
-    "https://edition.cnn.com/travel",
-    "https://edition.cnn.com/travel/news",
-    "https://edition.cnn.com/travel/food-and-drink",
-    "https://edition.cnn.com/climate",
-    "https://edition.cnn.com/us/crime-and-justice",
-    "https://edition.cnn.com/science",
-    "https://edition.cnn.com/science/space"
+    // "https://edition.cnn.com/politics",
+    // "https://edition.cnn.com/politics/president-donald-trump-47",
+    // "https://edition.cnn.com/politics/fact-check",
+    // "https://edition.cnn.com/entertainment",
+    // "https://edition.cnn.com/entertainment/movies",
+    // "https://edition.cnn.com/entertainment/tv-shows",
+    // "https://edition.cnn.com/entertainment/celebrities",
+    // "https://edition.cnn.com/weather",
+    // "https://edition.cnn.com/business",
+    // "https://edition.cnn.com/business/tech",
+    // "https://edition.cnn.com/business/media",
+    // "https://edition.cnn.com/style",
+    // "https://edition.cnn.com/style/arts",
+    // "https://edition.cnn.com/style/fashion",
+    // "https://edition.cnn.com/style/beauty",
+    // "https://edition.cnn.com/style/design",
+    // "https://edition.cnn.com/sport",
+    // "https://edition.cnn.com/sport/football",
+    // "https://edition.cnn.com/sport/tennis",
+    // "https://edition.cnn.com/sport/golf",
+    // "https://edition.cnn.com/sport/motorsport",
+    // "https://edition.cnn.com/health",
+    // "https://edition.cnn.com/health/life-but-better/sleep",
+    // "https://edition.cnn.com/health/life-but-better/mindfulness",
+    // "https://edition.cnn.com/health/life-but-better/relationships",
+    // "https://edition.cnn.com/world/china",
+    // "https://edition.cnn.com/world/europe/ukraine",
+    // "https://edition.cnn.com/travel",
+    // "https://edition.cnn.com/travel/news",
+    // "https://edition.cnn.com/travel/food-and-drink",
+    // "https://edition.cnn.com/climate",
+    // "https://edition.cnn.com/us/crime-and-justice",
+    // "https://edition.cnn.com/science",
+    // "https://edition.cnn.com/science/space"
   ];
   for (const baseURL of baseURLs) {
     await scrapeCNN(baseURL);
@@ -387,7 +387,17 @@ async function scrapeCNN(baseURL) {
           }
 
         if (!content_html.trim()) {
-          console.log("Bỏ qua: không trích xuất được nội dung");
+          // DEBUG: kiểm tra các selector thực tế có trong trang
+          console.log(`\n[CONTENT DEBUG] Không trích xuất được nội dung cho: ${article.link}`);
+          console.log(`[CONTENT DEBUG] .article__content tồn tại       : ${$(".article__content").length > 0}`);
+          console.log(`[CONTENT DEBUG] .article__content > * count      : ${$(".article__content > *").length}`);
+          console.log(`[CONTENT DEBUG] p.paragraph count                : ${$("p.paragraph").length}`);
+          console.log(`[CONTENT DEBUG] h1 text                          : "${$("h1").first().text().trim().substring(0, 80)}"`);
+          console.log(`[CONTENT DEBUG] Các class div đầu tiên trong body:`);
+          $("body > div").slice(0, 5).each((i, el) => {
+            console.log(`  div[${i}] class="${$(el).attr("class") || ""}"`);
+          });
+          console.log(``);
           continue;
         }
         // === 2. THU THẬP TẤT CẢ ẢNH TỪ content_html (đã giữ vị trí) ===
