@@ -329,9 +329,11 @@ async function scrapeCNN(baseURL) {
       }
 
       let isVideo = false;
-      if (article.link.includes("video")) {
-        isVideo = true;
-      }
+      try {
+        const videoPathPattern = /\/(videos?|video)\//i;
+        isVideo = videoPathPattern.test(new URL(article.link).pathname);
+      } catch(_) {}
+
 
       let success = false;
       try {
@@ -453,11 +455,17 @@ async function scrapeCNN(baseURL) {
           try { videoResourceUrls = JSON.parse(videoResourceUrlsRaw); } catch(_) {}
 
           // Lấy từng phần tử theo đúng thứ tự trong bài
+          // DEBUG TẠM THỜI - xóa sau khi fix xong
+          console.log("[DEBUG ELEMENTS]");
+          $(".article__content > *").slice(0, 10).each((i, el) => {
+            const $el = $(el);
+            console.log(`  [${i}] tag=${el.tagName || el.name} class="${$el.attr("class") || ""}" data-component="${$el.attr("data-component-name") || ""}`);
+          });
           $(".article__content > *").each((_, el) => {
             const $el = $(el);
 
             // 1. Nếu là <p> — giữ nguyên HTML bên trong (có thể chứa <img>)
-            if ($el.is("p")) {
+            if ($el.is("p") || $el.is("p.paragraph") || $el.hasClass("paragraph")) {
               // 🧹 Xóa các thẻ <a> trỏ đến cnn.com, nhưng giữ lại text bên trong
               $el.find("a").each((_, a) => {
                 const href = $(a).attr("href") || "";
