@@ -79,7 +79,8 @@ async function fetchArticleHTMLWithJS(url) {
       if (u.includes("media.cnn.com") && u.includes(".mp4")) {
         const wMatch = u.match(/w_(\d+)/);
         const width = wMatch ? parseInt(wMatch[1]) : 0;
-        const slugMatch = u.match(/prod\/([^?]+\.mp4)/);
+        // ✅ SỬA: bắt thêm pattern /loops/stellar/prod/
+        const slugMatch = u.match(/(?:loops\/stellar\/prod|prod)\/([^?]+\.mp4)/);
         const videoSlug = slugMatch ? slugMatch[1] : null;
         if (!videoSlug) { req.continue(); return; }
         const existing = videoUrls.find((v) => v.slug === videoSlug);
