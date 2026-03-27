@@ -49,37 +49,35 @@ async function fetchArticleHTMLWithJS(url) {
       Pragma: "no-cache",
     });
 
-    // ✅ interactive-video loop mp4 URLs
     const videoUrls = [];
-
-    // ✅ video-resource mp4 URLs (từ fave.api.cnn.io)
     const videoResourceMp4Urls = [];
-
-    // ✅ FIX: Dùng Promise để chắc chắn biết khi nào fave.api respond xong
     let faveApiPendingCount = 0;
     let faveApiResolvers = [];
 
     await page.setRequestInterception(true);
 
+    // ============ REQUEST HANDLER ============
     page.on("request", (req) => {
       const resourceType = req.resourceType();
+
+      // ✅ Chỉ abort font, KHÔNG abort media (để bắt được mp4)
       if (resourceType === "font") {
         req.abort();
         return;
       }
+
       const u = req.url();
 
-      // ✅ Đếm số request đến fave.api để biết cần chờ bao nhiêu response
+      // Đếm request đến fave.api
       if (u.includes("fave.api.cnn.io/v1/video")) {
         faveApiPendingCount++;
-        console.log(`[FAVE-API] Request #${faveApiPendingCount}: ${u.substring(0, 80)}`);
+        console.log(`[FAVE-API] Request #${faveApiPendingCount}: ${u.substring(0, 100)}`);
       }
 
-      // Bắt interactive-video loop mp4
+      // ✅ Bắt interactive-video loop mp4 (cả /prod/ và /loops/stellar/prod/)
       if (u.includes("media.cnn.com") && u.includes(".mp4")) {
         const wMatch = u.match(/w_(\d+)/);
         const width = wMatch ? parseInt(wMatch[1]) : 0;
-        // ✅ SỬA: bắt thêm pattern /loops/stellar/prod/
         const slugMatch = u.match(/(?:loops\/stellar\/prod|prod)\/([^?]+\.mp4)/);
         const videoSlug = slugMatch ? slugMatch[1] : null;
         if (!videoSlug) { req.continue(); return; }
@@ -97,23 +95,35 @@ async function fetchArticleHTMLWithJS(url) {
       req.continue();
     });
 
-    // ✅ FIX: Bắt response từ fave.api.cnn.io và đếm ngược pending
+    // ============ RESPONSE HANDLER ============
     page.on("response", async (res) => {
       const u = res.url();
+
       if (u.includes("fave.api.cnn.io/v1/video")) {
         try {
           const json = await res.json();
+
+          // ✅ DEBUG: xem structure trả về
+          console.log(`[FAVE-DEBUG] status: ${res.status()}`);
+          console.log(`[FAVE-DEBUG] keys: ${Object.keys(json).join(", ")}`);
+          console.log(`[FAVE-DEBUG] sample: ${JSON.stringify(json).substring(0, 300)}`);
+
           const fileUri =
             json?.video?.fileUri ||
             json?.fileUri ||
             json?.sources?.[0]?.fileUri;
+
+          console.log(`[FAVE-DEBUG] fileUri: ${fileUri || "KHÔNG TÌM THẤY"}`);
+
           if (fileUri && fileUri.includes(".mp4")) {
             videoResourceMp4Urls.push(fileUri);
-            console.log(`[VIDEO-RESOURCE] mp4: ${fileUri.substring(0, 80)}`);
+            console.log(`[VIDEO-RESOURCE] ✅ mp4: ${fileUri.substring(0, 100)}`);
           }
-        } catch (_) {}
+        } catch (e) {
+          console.log(`[FAVE-DEBUG] Lỗi parse JSON: ${e.message}`);
+        }
 
-        // Giảm pending count, resolve nếu xong hết
+        // Giảm pending, resolve nếu xong hết
         faveApiPendingCount--;
         if (faveApiPendingCount <= 0 && faveApiResolvers.length > 0) {
           faveApiResolvers.forEach(resolve => resolve());
@@ -132,35 +142,32 @@ async function fetchArticleHTMLWithJS(url) {
       console.warn("[PUPPETEER] Không tìm thấy selector sau 15s, vẫn tiếp tục...");
     }
 
-    // ✅ FIX: Chờ fave.api respond xong, hoặc timeout 8s nếu không có request nào
+    // Chờ fave.api respond xong
     if (faveApiPendingCount > 0) {
-      console.log(`[FAVE-API] Đang chờ ${faveApiPendingCount} response từ fave.api.cnn.io...`);
+      console.log(`[FAVE-API] Đang chờ ${faveApiPendingCount} response...`);
       await Promise.race([
-        // Chờ tất cả fave.api respond
         new Promise(resolve => { faveApiResolvers.push(resolve); }),
-        // Timeout tối đa 8 giây
         new Promise(resolve => setTimeout(resolve, 8000)),
       ]);
       console.log(`[FAVE-API] Xong. Tìm thấy ${videoResourceMp4Urls.length} video mp4.`);
     } else {
-      // Không có fave.api request → chờ thêm 3s phòng trường hợp lazy load
-      console.log(`[FAVE-API] Không có request nào, chờ thêm 3s...`);
-      await new Promise(r => setTimeout(r, 3000));
+      console.log(`[FAVE-API] Không có request nào, chờ thêm 5s...`);
+      await new Promise(r => setTimeout(r, 5000));
 
-      // ✅ FIX: Sau 3s nếu vẫn có pending (lazy load sau domcontentloaded) thì chờ thêm
       if (faveApiPendingCount > 0) {
-        console.log(`[FAVE-API] Phát hiện ${faveApiPendingCount} request lazy, chờ thêm 5s...`);
+        console.log(`[FAVE-API] Phát hiện lazy request, chờ thêm 5s...`);
         await Promise.race([
           new Promise(resolve => { faveApiResolvers.push(resolve); }),
           new Promise(resolve => setTimeout(resolve, 5000)),
         ]);
-        console.log(`[FAVE-API] Xong lazy load. Tìm thấy ${videoResourceMp4Urls.length} video mp4.`);
+        console.log(`[FAVE-API] Xong lazy. Tìm thấy ${videoResourceMp4Urls.length} video mp4.`);
       }
     }
 
     const html = await page.content();
     console.log(`[DEBUG] HTML length: ${html.length}`);
     console.log(`[DEBUG] Has article__content: ${html.includes("article__content")}`);
+    console.log(`[VIDEO] interactive-video URLs: ${videoUrls.length}, video-resource URLs: ${videoResourceMp4Urls.length}`);
 
     const finalUrls = videoUrls.map((v) => v.url);
     const injected = html.replace(
