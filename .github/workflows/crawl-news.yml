@@ -41,7 +41,9 @@ jobs:
             libasound2t64
       
       - name: Install dependencies
-        run: npm install   # ⬅️ ĐỔI TỪ npm ci → npm install (vì thêm package mới chưa có package-lock)
+        run: npm install
+        env:
+          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true
       
       - name: Run crawler
         run: node src/index.js
@@ -51,4 +53,4 @@ jobs:
           MISTRAL_API_KEYS: ${{ secrets.MISTRAL_API_KEYS }}
           OPENROUTER_API_KEYS: ${{ secrets.OPENROUTER_API_KEYS }}
           PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium-browser
-          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true  # ⬅️ THÊM: dùng chromium-browser hệ thống, không tải thêm
+          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true

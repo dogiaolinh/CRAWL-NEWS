@@ -426,6 +426,11 @@ async function scrapeCNN(baseURL) {
           let videoUrls = [];
           try { videoUrls = JSON.parse(videoUrlsRaw); } catch(_) {}
 
+          // ✅ THÊM: Parse video-resource mp4 URLs
+          const videoResourceUrlsRaw = $("div#__video_resource_urls__").attr("data-urls") || "[]";
+          let videoResourceUrls = [];
+          try { videoResourceUrls = JSON.parse(videoResourceUrlsRaw); } catch(_) {}
+
           // Lấy từng phần tử theo đúng thứ tự trong bài
           $(".article__content > *").each((_, el) => {
             const $el = $(el);
@@ -494,6 +499,21 @@ async function scrapeCNN(baseURL) {
                   contentBlocks.push(
                     '<div style="margin:24px 0;">' +
                     '<video autoplay muted loop playsinline width="100%" style="border-radius:8px;display:block;">' +
+                    '<source src="' + videoSrc + '" type="video/mp4">' +
+                    '</video>' +
+                    '</div>'
+                  );
+                }
+              }
+            else if (
+                $el.is('div[data-component-name="video-resource"]') ||
+                $el.hasClass("video-resource")
+              ) {
+                const videoSrc = videoResourceUrls.shift() || null;
+                if (videoSrc) {
+                  contentBlocks.push(
+                    '<div style="margin:24px 0;">' +
+                    '<video controls width="100%" style="border-radius:8px;display:block;">' +
                     '<source src="' + videoSrc + '" type="video/mp4">' +
                     '</video>' +
                     '</div>'
