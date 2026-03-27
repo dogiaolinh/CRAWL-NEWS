@@ -63,7 +63,7 @@ async function fetchArticleHTMLWithJS(url) {
 
     page.on("request", (req) => {
       const resourceType = req.resourceType();
-      if (["font", "media"].includes(resourceType)) {
+      if (resourceType === "font") {
         req.abort();
         return;
       }
