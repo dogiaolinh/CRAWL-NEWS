@@ -19,6 +19,38 @@ async function fetchArticleHTML(url) {
   }
 }
 
+// ✅ Gọi fave.api trực tiếp bằng axios (Node.js) - không qua browser
+async function fetchFaveApiMp4(faveApiUrl) {
+  try {
+    const { data } = await axios.get(faveApiUrl, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/json",
+        "Referer": "https://edition.cnn.com/",
+        "Origin": "https://edition.cnn.com",
+      },
+      timeout: 15000,
+    });
+
+    const fileUri =
+      data?.video?.fileUri ||
+      data?.fileUri ||
+      data?.sources?.[0]?.fileUri ||
+      data?.videoSources?.[0]?.fileUri ||
+      data?.data?.fileUri;
+
+    if (fileUri && fileUri.includes(".mp4")) {
+      console.log(`[VIDEO-RESOURCE] ✅ mp4 (axios): ${fileUri.substring(0, 100)}`);
+      return fileUri;
+    }
+    return null;
+  } catch (e) {
+    console.log(`[FAVE-AXIOS] Lỗi: ${e.message}`);
+    return null;
+  }
+}
+
 async function fetchArticleHTMLWithJS(url) {
   console.log(`\n[PUPPETEER] Bắt đầu tải: ${url}`);
 
@@ -51,8 +83,13 @@ async function fetchArticleHTMLWithJS(url) {
 
     const videoUrls = [];
     const videoResourceMp4Urls = [];
-    let faveApiPendingCount = 0;
-    let faveApiResolvers = [];
+
+    // ✅ Chỉ lưu URL fave.api, KHÔNG đếm pending nữa
+    const faveApiUrlsSeen = new Set();
+    const faveApiUrlsCollected = [];
+
+    // ✅ Flag: chỉ thu thập trong lúc page đang load, bỏ qua retry sau
+    let collectingFaveUrls = true;
 
     await page.setRequestInterception(true);
 
@@ -67,9 +104,16 @@ async function fetchArticleHTMLWithJS(url) {
 
       const u = req.url();
 
-      if (u.includes("fave.api.cnn.io/v1/video")) {
-        faveApiPendingCount++;
-        console.log(`[FAVE-API] Request #${faveApiPendingCount}: ${u.substring(0, 100)}`);
+      // ✅ Thu thập URL fave.api (deduplicate, bỏ qua retry)
+      if (u.includes("fave.api.cnn.io/v1/video") && collectingFaveUrls) {
+        // Lấy phần id để dedup
+        const idMatch = u.match(/[?&]id=([^&]+)/);
+        const videoId = idMatch ? idMatch[1] : u;
+        if (!faveApiUrlsSeen.has(videoId)) {
+          faveApiUrlsSeen.add(videoId);
+          faveApiUrlsCollected.push(u);
+          console.log(`[FAVE-API] Thu thập URL #${faveApiUrlsCollected.length}: ${u.substring(0, 100)}`);
+        }
       }
 
       if (u.includes("media.cnn.com") && u.includes(".mp4")) {
@@ -92,79 +136,7 @@ async function fetchArticleHTMLWithJS(url) {
       req.continue();
     });
 
-    // ============ RESPONSE HANDLER ============
-    page.on("response", async (res) => {
-      const u = res.url();
-      if (!u.includes("fave.api.cnn.io/v1/video")) return;
-
-      const finalize = () => {
-        faveApiPendingCount--;
-        console.log(`[FAVE-API] Còn lại: ${faveApiPendingCount}`);
-        if (faveApiPendingCount <= 0 && faveApiResolvers.length > 0) {
-          faveApiResolvers.forEach(resolve => resolve());
-          faveApiResolvers = [];
-        }
-      };
-
-      try {
-        if (res.status() >= 300) {
-          console.log(`[FAVE-DEBUG] Bỏ qua status ${res.status()}`);
-          return;
-        }
-
-        let text = null;
-
-        // Cách 1: buffer
-        try {
-          const buffer = await res.buffer();
-          if (buffer && buffer.length > 0) text = buffer.toString("utf-8");
-        } catch (_) {}
-
-        // Cách 2: text()
-        if (!text) {
-          try { text = await res.text(); } catch (_) {}
-        }
-
-        // Cách 3: fetch lại trong browser context (bypass block CI)
-        if (!text) {
-          try {
-            text = await page.evaluate(async (apiUrl) => {
-              const r = await fetch(apiUrl, { credentials: "include" });
-              return r.ok ? r.text() : null;
-            }, u);
-          } catch (_) {}
-        }
-
-        if (!text || text.trim() === "") {
-          console.log(`[FAVE-DEBUG] Không đọc được body`);
-          return;
-        }
-
-        const json = JSON.parse(text);
-        console.log(`[FAVE-DEBUG] status: ${res.status()}`);
-        console.log(`[FAVE-DEBUG] keys: ${Object.keys(json).join(", ")}`);
-        console.log(`[FAVE-DEBUG] sample: ${JSON.stringify(json).substring(0, 300)}`);
-
-        const fileUri =
-          json?.video?.fileUri ||
-          json?.fileUri ||
-          json?.sources?.[0]?.fileUri ||
-          json?.videoSources?.[0]?.fileUri ||
-          json?.data?.fileUri;
-
-        console.log(`[FAVE-DEBUG] fileUri: ${fileUri || "KHÔNG TÌM THẤY"}`);
-
-        if (fileUri && fileUri.includes(".mp4")) {
-          videoResourceMp4Urls.push(fileUri);
-          console.log(`[VIDEO-RESOURCE] ✅ mp4: ${fileUri.substring(0, 100)}`);
-        }
-
-      } catch (e) {
-        console.log(`[FAVE-DEBUG] Lỗi: ${e.message}`);
-      } finally {
-        finalize(); // ✅ chỉ gọi duy nhất 1 lần
-      }
-    });
+    // ✅ Không cần RESPONSE HANDLER nữa - bỏ hoàn toàn
 
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
 
@@ -176,26 +148,24 @@ async function fetchArticleHTMLWithJS(url) {
       console.warn("[PUPPETEER] Không tìm thấy selector sau 15s, vẫn tiếp tục...");
     }
 
-    // Chờ fave.api respond xong
-    if (faveApiPendingCount > 0) {
-      console.log(`[FAVE-API] Đang chờ ${faveApiPendingCount} response...`);
-      await Promise.race([
-        new Promise(resolve => { faveApiResolvers.push(resolve); }),
-        new Promise(resolve => setTimeout(resolve, 15000)), // ✅ tăng lên 15s
-      ]);
-      console.log(`[FAVE-API] Xong. Tìm thấy ${videoResourceMp4Urls.length} video mp4.`);
-    } else {
-      console.log(`[FAVE-API] Không có request nào, chờ thêm 5s...`);
-      await new Promise(r => setTimeout(r, 5000));
+    // ✅ Chờ thêm 3s để thu thập hết URL fave.api từ lần load đầu
+    await new Promise(r => setTimeout(r, 3000));
 
-      if (faveApiPendingCount > 0) {
-        console.log(`[FAVE-API] Phát hiện lazy request, chờ thêm 10s...`);
-        await Promise.race([
-          new Promise(resolve => { faveApiResolvers.push(resolve); }),
-          new Promise(resolve => setTimeout(resolve, 10000)), // ✅ tăng lên 10s
-        ]);
-        console.log(`[FAVE-API] Xong lazy. Tìm thấy ${videoResourceMp4Urls.length} video mp4.`);
-      }
+    // ✅ Dừng thu thập - bỏ qua mọi retry sau này
+    collectingFaveUrls = false;
+
+    console.log(`[FAVE-API] Tổng URL thu thập: ${faveApiUrlsCollected.length}`);
+
+    // ✅ Gọi trực tiếp bằng axios từ Node.js (bypass block CI)
+    if (faveApiUrlsCollected.length > 0) {
+      console.log(`[FAVE-AXIOS] Đang fetch ${faveApiUrlsCollected.length} URL bằng axios...`);
+      const results = await Promise.all(
+        faveApiUrlsCollected.map(u => fetchFaveApiMp4(u))
+      );
+      results.forEach(mp4 => {
+        if (mp4) videoResourceMp4Urls.push(mp4);
+      });
+      console.log(`[FAVE-AXIOS] Tìm thấy ${videoResourceMp4Urls.length} mp4.`);
     }
 
     const html = await page.content();
