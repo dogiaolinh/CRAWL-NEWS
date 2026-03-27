@@ -306,9 +306,30 @@ async function scrapeCNN(baseURL) {
 
     for (const article of selected) {
       console.log(`\nXử lý: ${article.title}`);
+      // Bỏ qua các trang video thuần (không có article content)
+      const videoOnlyPatterns = [
+        "/videos/fast/",
+        "/videos/live/",
+        "/video/playlists/",
+        "/world/video/",
+        "/politics/video/",
+        "/business/video/",
+        "/entertainment/video/",
+        "/health/video/",
+        "/style/video/",
+        "/travel/video/",
+        "/sport/video/",
+        "/us/video/",
+        "/science/video/",
+        "/climate/video/",
+      ];
+      if (videoOnlyPatterns.some(p => article.link.includes(p))) {
+        console.log("Bỏ qua trang video thuần.");
+        continue;
+      }
+
       let isVideo = false;
       if (article.link.includes("video")) {
-        // console.log("Bỏ qua báo.");
         isVideo = true;
       }
 
