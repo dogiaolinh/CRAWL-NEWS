@@ -60,7 +60,6 @@ async function fetchArticleHTMLWithJS(url) {
     page.on("request", (req) => {
       const resourceType = req.resourceType();
 
-      // ✅ Chỉ abort font, KHÔNG abort media (để bắt được mp4)
       if (resourceType === "font") {
         req.abort();
         return;
@@ -68,13 +67,11 @@ async function fetchArticleHTMLWithJS(url) {
 
       const u = req.url();
 
-      // Đếm request đến fave.api
       if (u.includes("fave.api.cnn.io/v1/video")) {
         faveApiPendingCount++;
         console.log(`[FAVE-API] Request #${faveApiPendingCount}: ${u.substring(0, 100)}`);
       }
 
-      // ✅ Bắt interactive-video loop mp4 (cả /prod/ và /loops/stellar/prod/)
       if (u.includes("media.cnn.com") && u.includes(".mp4")) {
         const wMatch = u.match(/w_(\d+)/);
         const width = wMatch ? parseInt(wMatch[1]) : 0;
@@ -96,10 +93,8 @@ async function fetchArticleHTMLWithJS(url) {
     });
 
     // ============ RESPONSE HANDLER ============
-    // ============ RESPONSE HANDLER ============
     page.on("response", async (res) => {
       const u = res.url();
-
       if (!u.includes("fave.api.cnn.io/v1/video")) return;
 
       const finalize = () => {
@@ -114,21 +109,34 @@ async function fetchArticleHTMLWithJS(url) {
       try {
         if (res.status() >= 300) {
           console.log(`[FAVE-DEBUG] Bỏ qua status ${res.status()}`);
-          finalize();
           return;
         }
 
-        let text;
+        let text = null;
+
+        // Cách 1: buffer
         try {
           const buffer = await res.buffer();
-          text = buffer.toString("utf-8");
-        } catch (_) {
-          text = await res.text().catch(() => null);
+          if (buffer && buffer.length > 0) text = buffer.toString("utf-8");
+        } catch (_) {}
+
+        // Cách 2: text()
+        if (!text) {
+          try { text = await res.text(); } catch (_) {}
         }
 
+        // Cách 3: fetch lại trong browser context (bypass block CI)
         if (!text) {
-          console.log(`[FAVE-DEBUG] Response body rỗng`);
-          finalize();
+          try {
+            text = await page.evaluate(async (apiUrl) => {
+              const r = await fetch(apiUrl, { credentials: "include" });
+              return r.ok ? r.text() : null;
+            }, u);
+          } catch (_) {}
+        }
+
+        if (!text || text.trim() === "") {
+          console.log(`[FAVE-DEBUG] Không đọc được body`);
           return;
         }
 
@@ -150,10 +158,11 @@ async function fetchArticleHTMLWithJS(url) {
           videoResourceMp4Urls.push(fileUri);
           console.log(`[VIDEO-RESOURCE] ✅ mp4: ${fileUri.substring(0, 100)}`);
         }
+
       } catch (e) {
-        console.log(`[FAVE-DEBUG] Lỗi xử lý response: ${e.message}`);
+        console.log(`[FAVE-DEBUG] Lỗi: ${e.message}`);
       } finally {
-        finalize();
+        finalize(); // ✅ chỉ gọi duy nhất 1 lần
       }
     });
 
@@ -172,7 +181,7 @@ async function fetchArticleHTMLWithJS(url) {
       console.log(`[FAVE-API] Đang chờ ${faveApiPendingCount} response...`);
       await Promise.race([
         new Promise(resolve => { faveApiResolvers.push(resolve); }),
-        new Promise(resolve => setTimeout(resolve, 15000)),
+        new Promise(resolve => setTimeout(resolve, 15000)), // ✅ tăng lên 15s
       ]);
       console.log(`[FAVE-API] Xong. Tìm thấy ${videoResourceMp4Urls.length} video mp4.`);
     } else {
@@ -180,10 +189,10 @@ async function fetchArticleHTMLWithJS(url) {
       await new Promise(r => setTimeout(r, 5000));
 
       if (faveApiPendingCount > 0) {
-        console.log(`[FAVE-API] Phát hiện lazy request, chờ thêm 5s...`);
+        console.log(`[FAVE-API] Phát hiện lazy request, chờ thêm 10s...`);
         await Promise.race([
           new Promise(resolve => { faveApiResolvers.push(resolve); }),
-          new Promise(resolve => setTimeout(resolve, 10000)),
+          new Promise(resolve => setTimeout(resolve, 10000)), // ✅ tăng lên 10s
         ]);
         console.log(`[FAVE-API] Xong lazy. Tìm thấy ${videoResourceMp4Urls.length} video mp4.`);
       }
