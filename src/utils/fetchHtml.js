@@ -101,8 +101,8 @@ async function fetchArticleHTMLWithJS(url) {
 
       if (u.includes("fave.api.cnn.io/v1/video")) {
         try {
-          const json = await res.json();
-
+          const text = await res.text();
+          const json = JSON.parse(text);
           // ✅ DEBUG: xem structure trả về
           console.log(`[FAVE-DEBUG] status: ${res.status()}`);
           console.log(`[FAVE-DEBUG] keys: ${Object.keys(json).join(", ")}`);
