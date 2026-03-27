@@ -22,7 +22,7 @@ async function fetchArticleHTML(url) {
 // ✅ Gọi fave.api trực tiếp bằng axios (Node.js) - không qua browser
 async function fetchFaveApiMp4(faveApiUrl) {
   try {
-    const { data } = await axios.get(faveApiUrl, {
+    const { data, status } = await axios.get(faveApiUrl, {
       headers: {
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -33,6 +33,10 @@ async function fetchFaveApiMp4(faveApiUrl) {
       timeout: 15000,
     });
 
+    // ✅ Thêm debug
+    console.log(`[FAVE-AXIOS] HTTP ${status}, type: ${typeof data}`);
+    console.log(`[FAVE-AXIOS] Response sample: ${JSON.stringify(data).substring(0, 200)}`);
+
     const fileUri =
       data?.video?.fileUri ||
       data?.fileUri ||
@@ -41,12 +45,18 @@ async function fetchFaveApiMp4(faveApiUrl) {
       data?.data?.fileUri;
 
     if (fileUri && fileUri.includes(".mp4")) {
-      console.log(`[VIDEO-RESOURCE] ✅ mp4 (axios): ${fileUri.substring(0, 100)}`);
+      console.log(`[VIDEO-RESOURCE] ✅ mp4: ${fileUri.substring(0, 100)}`);
       return fileUri;
     }
+
+    console.log(`[FAVE-AXIOS] Không tìm thấy fileUri. Keys: ${Object.keys(data || {}).join(", ")}`);
     return null;
   } catch (e) {
-    console.log(`[FAVE-AXIOS] Lỗi: ${e.message}`);
+    // ✅ Log chi tiết lỗi
+    console.log(`[FAVE-AXIOS] Lỗi ${e.response?.status || "no-status"}: ${e.message}`);
+    if (e.response?.data) {
+      console.log(`[FAVE-AXIOS] Response body: ${JSON.stringify(e.response.data).substring(0, 200)}`);
+    }
     return null;
   }
 }
