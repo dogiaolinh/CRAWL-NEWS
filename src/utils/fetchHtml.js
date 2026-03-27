@@ -96,39 +96,64 @@ async function fetchArticleHTMLWithJS(url) {
     });
 
     // ============ RESPONSE HANDLER ============
+    // ============ RESPONSE HANDLER ============
     page.on("response", async (res) => {
       const u = res.url();
 
-      if (u.includes("fave.api.cnn.io/v1/video")) {
-        try {
-          const text = await res.text();
-          const json = JSON.parse(text);
-          // ✅ DEBUG: xem structure trả về
-          console.log(`[FAVE-DEBUG] status: ${res.status()}`);
-          console.log(`[FAVE-DEBUG] keys: ${Object.keys(json).join(", ")}`);
-          console.log(`[FAVE-DEBUG] sample: ${JSON.stringify(json).substring(0, 300)}`);
+      if (!u.includes("fave.api.cnn.io/v1/video")) return;
 
-          const fileUri =
-            json?.video?.fileUri ||
-            json?.fileUri ||
-            json?.sources?.[0]?.fileUri;
-
-          console.log(`[FAVE-DEBUG] fileUri: ${fileUri || "KHÔNG TÌM THẤY"}`);
-
-          if (fileUri && fileUri.includes(".mp4")) {
-            videoResourceMp4Urls.push(fileUri);
-            console.log(`[VIDEO-RESOURCE] ✅ mp4: ${fileUri.substring(0, 100)}`);
-          }
-        } catch (e) {
-          console.log(`[FAVE-DEBUG] Lỗi parse JSON: ${e.message}`);
-        }
-
-        // Giảm pending, resolve nếu xong hết
+      const finalize = () => {
         faveApiPendingCount--;
+        console.log(`[FAVE-API] Còn lại: ${faveApiPendingCount}`);
         if (faveApiPendingCount <= 0 && faveApiResolvers.length > 0) {
           faveApiResolvers.forEach(resolve => resolve());
           faveApiResolvers = [];
         }
+      };
+
+      try {
+        if (res.status() >= 300) {
+          console.log(`[FAVE-DEBUG] Bỏ qua status ${res.status()}`);
+          finalize();
+          return;
+        }
+
+        let text;
+        try {
+          const buffer = await res.buffer();
+          text = buffer.toString("utf-8");
+        } catch (_) {
+          text = await res.text().catch(() => null);
+        }
+
+        if (!text) {
+          console.log(`[FAVE-DEBUG] Response body rỗng`);
+          finalize();
+          return;
+        }
+
+        const json = JSON.parse(text);
+        console.log(`[FAVE-DEBUG] status: ${res.status()}`);
+        console.log(`[FAVE-DEBUG] keys: ${Object.keys(json).join(", ")}`);
+        console.log(`[FAVE-DEBUG] sample: ${JSON.stringify(json).substring(0, 300)}`);
+
+        const fileUri =
+          json?.video?.fileUri ||
+          json?.fileUri ||
+          json?.sources?.[0]?.fileUri ||
+          json?.videoSources?.[0]?.fileUri ||
+          json?.data?.fileUri;
+
+        console.log(`[FAVE-DEBUG] fileUri: ${fileUri || "KHÔNG TÌM THẤY"}`);
+
+        if (fileUri && fileUri.includes(".mp4")) {
+          videoResourceMp4Urls.push(fileUri);
+          console.log(`[VIDEO-RESOURCE] ✅ mp4: ${fileUri.substring(0, 100)}`);
+        }
+      } catch (e) {
+        console.log(`[FAVE-DEBUG] Lỗi xử lý response: ${e.message}`);
+      } finally {
+        finalize();
       }
     });
 
@@ -147,7 +172,7 @@ async function fetchArticleHTMLWithJS(url) {
       console.log(`[FAVE-API] Đang chờ ${faveApiPendingCount} response...`);
       await Promise.race([
         new Promise(resolve => { faveApiResolvers.push(resolve); }),
-        new Promise(resolve => setTimeout(resolve, 8000)),
+        new Promise(resolve => setTimeout(resolve, 15000)),
       ]);
       console.log(`[FAVE-API] Xong. Tìm thấy ${videoResourceMp4Urls.length} video mp4.`);
     } else {
@@ -158,7 +183,7 @@ async function fetchArticleHTMLWithJS(url) {
         console.log(`[FAVE-API] Phát hiện lazy request, chờ thêm 5s...`);
         await Promise.race([
           new Promise(resolve => { faveApiResolvers.push(resolve); }),
-          new Promise(resolve => setTimeout(resolve, 5000)),
+          new Promise(resolve => setTimeout(resolve, 10000)),
         ]);
         console.log(`[FAVE-API] Xong lazy. Tìm thấy ${videoResourceMp4Urls.length} video mp4.`);
       }

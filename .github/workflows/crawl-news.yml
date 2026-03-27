@@ -15,6 +15,7 @@ on:
 jobs:
   crawl-and-post:
     runs-on: ubuntu-latest
+    timeout-minutes: 30  # ✅ FIX 3: tránh treo vô hạn
     
     steps:
       - name: Checkout repository
@@ -26,19 +27,32 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: Install Puppeteer system dependencies
+      - name: Install Chromium and dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            chromium-browser \
+            chromium \
+            libatk1.0-0 \
             libatk-bridge2.0-0 \
+            libcups2 \
             libdrm2 \
             libxkbcommon0 \
+            libxcomposite1 \
+            libxdamage1 \
+            libxfixes3 \
+            libxrandr2 \
             libgbm1 \
             libnss3 \
             libgtk-3-0 \
             libxss1 \
             libasound2t64
+        # ✅ FIX 1: đổi chromium-browser → chromium (Ubuntu 24.04)
+        # ✅ FIX 2: thêm đủ dependencies
+
+      - name: Verify Chromium path  # ✅ thêm bước kiểm tra để debug nếu cần
+        run: |
+          which chromium
+          chromium --version
       
       - name: Install dependencies
         run: npm install
@@ -52,5 +66,5 @@ jobs:
           GROQ_API_KEYS: ${{ secrets.GROQ_API_KEYS }}
           MISTRAL_API_KEYS: ${{ secrets.MISTRAL_API_KEYS }}
           OPENROUTER_API_KEYS: ${{ secrets.OPENROUTER_API_KEYS }}
-          PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium-browser
+          PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium  # ✅ FIX 1: đổi path
           PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true

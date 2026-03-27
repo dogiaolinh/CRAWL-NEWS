@@ -1,6 +1,7 @@
 const cheerio = require("cheerio");
-const puppeteer = require('puppeteer');
-const fs = require("fs");
+const puppeteer = require("puppeteer-extra");
+const StealthPlugin = require("puppeteer-extra-plugin-stealth");
+puppeteer.use(StealthPlugin());const fs = require("fs");
 const path = require("path");
 const { fetchArticleHTML, fetchArticleHTMLWithJS } = require("../utils/fetchHtml");
 const { splitIntoChunks } = require("../utils/chunkSplitter");
