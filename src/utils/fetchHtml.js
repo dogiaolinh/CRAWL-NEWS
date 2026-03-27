@@ -37,19 +37,29 @@ async function fetchFaveApiMp4(faveApiUrl) {
     console.log(`[FAVE-AXIOS] HTTP ${status}, type: ${typeof data}`);
     console.log(`[FAVE-AXIOS] Response sample: ${JSON.stringify(data).substring(0, 200)}`);
 
-    const fileUri =
-      data?.video?.fileUri ||
-      data?.fileUri ||
-      data?.sources?.[0]?.fileUri ||
-      data?.videoSources?.[0]?.fileUri ||
-      data?.data?.fileUri;
+    let fileUri = null;
 
-    if (fileUri && fileUri.includes(".mp4")) {
+    // ✅ Lấy từ data.files - ưu tiên mp4 bitrate cao nhất
+    if (Array.isArray(data?.files) && data.files.length > 0) {
+      const mp4Files = data.files.filter(f =>
+        f?.fileUri?.includes(".mp4") || f?.url?.includes(".mp4")
+      );
+      mp4Files.sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0));
+      fileUri = mp4Files[0]?.fileUri || mp4Files[0]?.url || null;
+    }
+
+    // ✅ Fallback: videoUrl
+    if (!fileUri && data?.videoUrl?.includes(".mp4")) {
+      fileUri = data.videoUrl;
+    }
+
+    if (fileUri) {
       console.log(`[VIDEO-RESOURCE] ✅ mp4: ${fileUri.substring(0, 100)}`);
       return fileUri;
     }
 
-    console.log(`[FAVE-AXIOS] Không tìm thấy fileUri. Keys: ${Object.keys(data || {}).join(", ")}`);
+    console.log(`[FAVE-AXIOS] files[0]: ${JSON.stringify(data?.files?.[0]).substring(0, 200)}`);
+    console.log(`[FAVE-AXIOS] videoUrl: ${data?.videoUrl}`);
     return null;
   } catch (e) {
     // ✅ Log chi tiết lỗi
