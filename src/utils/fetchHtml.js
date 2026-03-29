@@ -24,7 +24,7 @@ async function fetchArticleHTMLWithJS(url) {
 
   const browser = await puppeteer.launch({
     headless: true, // ĐỔI: "new" → true (stealth hoạt động tốt hơn)
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || null,
+    // executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || null,
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
