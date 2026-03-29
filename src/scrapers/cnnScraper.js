@@ -242,6 +242,8 @@ async function scrapeCNN(baseURL) {
 
     for (const article of selected) {
       console.log(`\nXử lý: ${article.title}`);
+      console.log(`\nXử lý: ${article.title}`);
+      console.log(`🔗 CNN: ${article.link}`); // ✅ thêm dòng này
 
       // ✅ FIX 1: Bỏ qua các URL không có article content
       const videoOnlyPatterns = [
@@ -566,6 +568,7 @@ async function scrapeCNN(baseURL) {
         }
 
         console.log(`HOÀN TẤT: ${title} (ID: ${articleId})`);
+        console.log(`✅ Đã đăng: https://www.todaynews.blog/${slug}`); // ✅ thêm dòng này
         success = true;
         console.log("Đợi 3s!");
         await new Promise(r => setTimeout(r, 3000));
