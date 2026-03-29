@@ -137,35 +137,91 @@ async function extractVideoLink(articleUrl) {
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--single-process',
-        '--disable-gpu'
+        '--disable-gpu',
+        '--window-size=1920,1080',
+        '--disable-blink-features=AutomationControlled',
       ],
-      timeout: 60000
     });
 
     const page = await browser.newPage();
-    await page.setDefaultNavigationTimeout(60000);
+    await page.setDefaultNavigationTimeout(90000);
 
+    // Theo dõi response để bắt link .mpd
     page.on('response', (response) => {
       const url = response.url();
       if (url.includes('.mpd')) {
-        if (url.includes('fallback') || !url.includes('ctx=') || !url.includes('ps=')) {
+        console.log(`[VIDEO] Tìm thấy .mpd: ${url}`);
+        
+        // Ưu tiên fallback để tránh quảng cáo
+        if (url.includes('fallback') || !url.includes('ctx=')) {
           videoLink = url;
-        } else if (!videoLink && url.includes('dash.mpd')) {
+          console.log(`→ Chọn FALLBACK manifest (tránh quảng cáo)`);
+        } 
+        else if (!videoLink) {
           videoLink = url;
+          console.log(`→ Chọn MASTER manifest`);
         }
       }
     });
 
-    await page.goto(articleUrl, {
-      waitUntil: 'networkidle2',
-      timeout: 60000
+    // Load trang
+    await page.goto(articleUrl, { 
+      waitUntil: 'networkidle2', 
+      timeout: 90000 
     });
 
+    console.log("[PUPPETEER] Đang scroll và click nút Play...");
+
+    // Scroll xuống để video xuất hiện
+    await page.evaluate(() => {
+      window.scrollBy(0, 600);
+    });
+    await new Promise(r => setTimeout(r, 3000));
+
+    // Tìm và click nút Play (dùng selector anh cung cấp)
+    const playButtonSelectors = [
+      'button.sc-dhoNoI.jFXs.pui_center-controls_big-play-toggle',
+      '.video__play-button',
+      '.media__play-button',
+      '.vjs-big-play-button',
+      'button[aria-label="Play"]',
+      '.play-icon'
+    ];
+
+    let clicked = false;
+
+    for (const selector of playButtonSelectors) {
+      try {
+        const button = await page.$(selector);
+        if (button) {
+          console.log(`→ Tìm thấy nút Play với selector: ${selector}`);
+          await button.click();
+          clicked = true;
+          console.log("→ Đã click nút Play");
+          break;
+        }
+      } catch (e) {
+        // tiếp tục thử selector khác
+      }
+    }
+
+    if (!clicked) {
+      console.log("Không tìm thấy nút Play, thử click vào vùng video...");
+      // Click vào vùng video nếu không tìm thấy nút
+      await page.click('.video-resource, .media__video, .video-player').catch(() => {});
+    }
+
+    // Chờ manifest load sau khi click
+    await new Promise(r => setTimeout(r, 2000));
+
     await browser.close();
+
+    if (videoLink) {
+      console.log(`✅ Tìm thấy video link: ${videoLink}`);
+    } else {
+      console.log("❌ Vẫn không tìm thấy .mpd nào sau khi click Play");
+    }
+
     return videoLink;
 
   } catch (err) {
@@ -187,8 +243,46 @@ async function checkSlugExists(slug) {
 async function scrapeAll() {
   const baseURLs = [
     "https://edition.cnn.com/",
-    // "https://edition.cnn.com/world",
-    // ... các URL khác giữ nguyên
+    "https://edition.cnn.com/world",
+
+    "https://edition.cnn.com/us",
+    "https://edition.cnn.com/health/life-but-better/fitness",
+
+    "https://edition.cnn.com/politics",
+    "https://edition.cnn.com/politics/president-donald-trump-47",
+    "https://edition.cnn.com/politics/fact-check",
+    "https://edition.cnn.com/entertainment",
+    "https://edition.cnn.com/entertainment/movies",
+    "https://edition.cnn.com/entertainment/tv-shows",
+    "https://edition.cnn.com/entertainment/celebrities",
+    "https://edition.cnn.com/weather",
+    "https://edition.cnn.com/business",
+    "https://edition.cnn.com/business/tech",
+    "https://edition.cnn.com/business/media",
+    "https://edition.cnn.com/style",
+    "https://edition.cnn.com/style/arts",
+    "https://edition.cnn.com/style/fashion",
+    "https://edition.cnn.com/style/beauty",
+    "https://edition.cnn.com/style/design",
+    "https://edition.cnn.com/sport",
+    "https://edition.cnn.com/sport/football",
+    "https://edition.cnn.com/sport/tennis",
+    "https://edition.cnn.com/sport/golf",
+    "https://edition.cnn.com/sport/motorsport",
+    "https://edition.cnn.com/health",
+    "https://edition.cnn.com/health/life-but-better/sleep",
+    "https://edition.cnn.com/health/life-but-better/mindfulness",
+    "https://edition.cnn.com/health/life-but-better/relationships",
+    "https://edition.cnn.com/world/china",
+    "https://edition.cnn.com/world/europe/ukraine",
+    "https://edition.cnn.com/travel",
+    "https://edition.cnn.com/travel/news",
+    "https://edition.cnn.com/travel/food-and-drink",
+    "https://edition.cnn.com/climate",
+    "https://edition.cnn.com/us/crime-and-justice",
+    "https://edition.cnn.com/science",
+    "https://edition.cnn.com/science/space"
+
   ];
   for (const baseURL of baseURLs) {
     await scrapeCNN(baseURL);
@@ -240,31 +334,32 @@ async function scrapeCNN(baseURL) {
     console.log(`Tìm thấy ${articles.length} bài. Lấy 30 bài đầu để test.`);
     const selected = articles.slice(0, 30);
 
+
     for (const article of selected) {
       console.log(`\nXử lý: ${article.title}`);
 
       // ✅ FIX 1: Bỏ qua các URL không có article content
-      const videoOnlyPatterns = [
-        "/videos/fast/",
-        "/videos/live/",
-        "/video/playlists/",
-        "/world/video/",
-        "/politics/video/",
-        "/business/video/",
-        "/entertainment/video/",
-        "/health/video/",
-        "/style/video/",
-        "/travel/video/",
-        "/sport/video/",
-        "/us/video/",
-        "/science/video/",
-        "/climate/video/",
-        "/interactive/",  // ✅ bỏ qua trang interactive (không có article__content)
-      ];
-      if (videoOnlyPatterns.some(p => article.link.includes(p))) {
-        console.log("Bỏ qua trang không hỗ trợ.");
-        continue;
-      }
+      // const videoOnlyPatterns = [
+      //   "/videos/fast/",
+      //   "/videos/live/",
+      //   "/video/playlists/",
+      //   "/world/video/",
+      //   "/politics/video/",
+      //   "/business/video/",
+      //   "/entertainment/video/",
+      //   "/health/video/",
+      //   "/style/video/",
+      //   "/travel/video/",
+      //   "/sport/video/",
+      //   "/us/video/",
+      //   "/science/video/",
+      //   "/climate/video/",
+      //   "/interactive/",  // ✅ bỏ qua trang interactive (không có article__content)
+      // ];
+      // if (videoOnlyPatterns.some(p => article.link.includes(p))) {
+      //   console.log("Bỏ qua trang không hỗ trợ.");
+      //   continue;
+      // }
 
       // ✅ FIX 2: isVideo chỉ true khi path thực sự là /video/ hoặc /videos/
       // Tránh nhận nhầm bài báo có chữ "video" trong slug (vd: viral-video-china-dogs)
