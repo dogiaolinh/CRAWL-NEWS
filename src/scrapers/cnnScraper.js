@@ -427,22 +427,55 @@ async function scrapeCNN(baseURL) {
             description = description.replace(/\(CNN\)/gi, '').trim();
 
             const videoEmbed = `
-              <div style="margin: 20px 0; text-align: center; max-width: 100%;">
-                <video id="video-player" controls width="100%" height="auto"></video>
-                ${description ? `<p style="margin-top: 10px; font-style: italic; color: #555;">${description}</p>` : ''}
-                <script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>
-                <script>
-                  (function() {
-                    const playerElement = document.getElementById("video-player");
-                    if (!playerElement) return;
-                    const url = "${videoLink}";
-                    const player = dashjs.MediaPlayer().create();
-                    player.initialize(playerElement, url, false);
-                    player.on(dashjs.MediaPlayer.events.ERROR, function(e) {
-                      console.error("Lỗi phát DASH:", e);
-                    });
-                  })();
-                </script>
+              <div style="margin: 20px 0; text-align: center; max-width: 100%; width: 100%;">
+    
+                  <!-- Container responsive giữ tỉ lệ -->
+                  <div style="position: relative; width: 100%; max-width: 1280px; margin: 0 auto; background: #000; border-radius: 8px; overflow: hidden; aspect-ratio: 16 / 9;">
+                      
+                      <video 
+                          id="video-player" 
+                          controls 
+                          style="width: 100%; height: 100%; display: block;"
+                          playsinline>
+                      </video>
+                      
+                  </div>
+
+                  ${description ? `
+                  <p style="margin-top: 12px; font-style: italic; color: #555; text-align: center; padding: 0 10px;">
+                      ${description}
+                  </p>` : ''}
+
+                  <script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>
+                  <script>
+                      (function() {
+                          const videoElement = document.getElementById("video-player");
+                          if (!videoElement) return;
+
+                          const url = "${videoLink}";
+
+                          const player = dashjs.MediaPlayer().create();
+                          
+                          // Cấu hình DASH player tốt hơn
+                          player.updateSettings({
+                              'streaming': {
+                                  'abr': { 'enabled': true },
+                                  'buffer': { 'fastSwitchEnabled': true }
+                              }
+                          });
+
+                          player.initialize(videoElement, url, false);
+
+                          player.on(dashjs.MediaPlayer.events.ERROR, function(e) {
+                              console.error("Lỗi phát DASH:", e);
+                          });
+
+                          // Tự động resize khi thay đổi kích thước cửa sổ
+                          window.addEventListener('resize', () => {
+                              player.resize();
+                          });
+                      })();
+                  </script>
               </div>
             `;
             contentBlocks.push(videoEmbed);
