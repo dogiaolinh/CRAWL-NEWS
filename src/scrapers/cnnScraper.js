@@ -144,7 +144,7 @@ async function extractVideoLink(articleUrl) {
     });
 
     const page = await browser.newPage();
-    await page.setDefaultNavigationTimeout(90000);
+    await page.setDefaultNavigationTimeout(10000);
 
     // Theo dõi response để bắt link .mpd
     page.on('response', (response) => {
@@ -167,7 +167,7 @@ async function extractVideoLink(articleUrl) {
     // Load trang
     await page.goto(articleUrl, { 
       waitUntil: 'networkidle2', 
-      timeout: 90000 
+      timeout: 10000 
     });
 
     console.log("[PUPPETEER] Đang scroll và click nút Play...");
@@ -176,7 +176,7 @@ async function extractVideoLink(articleUrl) {
     await page.evaluate(() => {
       window.scrollBy(0, 600);
     });
-    await new Promise(r => setTimeout(r, 3000));
+    await new Promise(r => setTimeout(r, 1000));
 
     // Tìm và click nút Play (dùng selector anh cung cấp)
     const playButtonSelectors = [
@@ -212,7 +212,7 @@ async function extractVideoLink(articleUrl) {
     }
 
     // Chờ manifest load sau khi click
-    await new Promise(r => setTimeout(r, 2000));
+    await new Promise(r => setTimeout(r, 1000));
 
     await browser.close();
 
@@ -243,45 +243,44 @@ async function checkSlugExists(slug) {
 async function scrapeAll() {
   const baseURLs = [
     "https://edition.cnn.com/",
-    "https://edition.cnn.com/world",
+    // "https://edition.cnn.com/world",
 
-    "https://edition.cnn.com/us",
-    "https://edition.cnn.com/health/life-but-better/fitness",
-
-    "https://edition.cnn.com/politics",
-    "https://edition.cnn.com/politics/president-donald-trump-47",
-    "https://edition.cnn.com/politics/fact-check",
-    "https://edition.cnn.com/entertainment",
-    "https://edition.cnn.com/entertainment/movies",
-    "https://edition.cnn.com/entertainment/tv-shows",
-    "https://edition.cnn.com/entertainment/celebrities",
-    "https://edition.cnn.com/weather",
-    "https://edition.cnn.com/business",
-    "https://edition.cnn.com/business/tech",
-    "https://edition.cnn.com/business/media",
-    "https://edition.cnn.com/style",
-    "https://edition.cnn.com/style/arts",
-    "https://edition.cnn.com/style/fashion",
-    "https://edition.cnn.com/style/beauty",
-    "https://edition.cnn.com/style/design",
-    "https://edition.cnn.com/sport",
-    "https://edition.cnn.com/sport/football",
-    "https://edition.cnn.com/sport/tennis",
-    "https://edition.cnn.com/sport/golf",
-    "https://edition.cnn.com/sport/motorsport",
-    "https://edition.cnn.com/health",
-    "https://edition.cnn.com/health/life-but-better/sleep",
-    "https://edition.cnn.com/health/life-but-better/mindfulness",
-    "https://edition.cnn.com/health/life-but-better/relationships",
-    "https://edition.cnn.com/world/china",
-    "https://edition.cnn.com/world/europe/ukraine",
-    "https://edition.cnn.com/travel",
-    "https://edition.cnn.com/travel/news",
-    "https://edition.cnn.com/travel/food-and-drink",
-    "https://edition.cnn.com/climate",
-    "https://edition.cnn.com/us/crime-and-justice",
-    "https://edition.cnn.com/science",
-    "https://edition.cnn.com/science/space"
+    // "https://edition.cnn.com/us",
+    // "https://edition.cnn.com/health/life-but-better/fitness",
+    // "https://edition.cnn.com/politics",
+    // "https://edition.cnn.com/politics/president-donald-trump-47",
+    // "https://edition.cnn.com/politics/fact-check",
+    // "https://edition.cnn.com/entertainment",
+    // "https://edition.cnn.com/entertainment/movies",
+    // "https://edition.cnn.com/entertainment/tv-shows",
+    // "https://edition.cnn.com/entertainment/celebrities",
+    // "https://edition.cnn.com/weather",
+    // "https://edition.cnn.com/business",
+    // "https://edition.cnn.com/business/tech",
+    // "https://edition.cnn.com/business/media",
+    // "https://edition.cnn.com/style",
+    // "https://edition.cnn.com/style/arts",
+    // "https://edition.cnn.com/style/fashion",
+    // "https://edition.cnn.com/style/beauty",
+    // "https://edition.cnn.com/style/design",
+    // "https://edition.cnn.com/sport",
+    // "https://edition.cnn.com/sport/football",
+    // "https://edition.cnn.com/sport/tennis",
+    // "https://edition.cnn.com/sport/golf",
+    // "https://edition.cnn.com/sport/motorsport",
+    // "https://edition.cnn.com/health",
+    // "https://edition.cnn.com/health/life-but-better/sleep",
+    // "https://edition.cnn.com/health/life-but-better/mindfulness",
+    // "https://edition.cnn.com/health/life-but-better/relationships",
+    // "https://edition.cnn.com/world/china",
+    // "https://edition.cnn.com/world/europe/ukraine",
+    // "https://edition.cnn.com/travel",
+    // "https://edition.cnn.com/travel/news",
+    // "https://edition.cnn.com/travel/food-and-drink",
+    // "https://edition.cnn.com/climate",
+    // "https://edition.cnn.com/us/crime-and-justice",
+    // "https://edition.cnn.com/science",
+    // "https://edition.cnn.com/science/space"
 
   ];
   for (const baseURL of baseURLs) {
