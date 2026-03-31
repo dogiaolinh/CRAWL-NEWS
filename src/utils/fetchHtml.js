@@ -200,7 +200,11 @@ async function fetchArticleHTMLWithJS(url) {
       `<div id="__video_resource_urls__" data-urls='${JSON.stringify(videoResourceMp4Urls)}'></div>` +
       `</body>`
     );
-    return injected;
+    return {
+      html: injected,
+      page,
+      browser
+    };
   } finally {
     await browser.close();
   }

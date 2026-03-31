@@ -32,99 +32,273 @@ function extractCategoriesFromURL(url) {
   }
 }
 
-function extractLiveContent($) {
+/**
+ * Extract nội dung bài Live Story của CNN (hỗ trợ Text, Image, Quote và Video)
+ * @param {Object} $ - Cheerio instance
+ * @param {Object} page - Puppeteer Page instance (dùng để click Play và lấy .mpd)
+ */
+/**
+ * Extract nội dung Live Story CNN - Hỗ trợ đầy đủ các loại video
+ */
+async function extractLiveContent($, page) {
   const contentBlocks = [];
+  console.log(`📺 BẮT ĐẦU extractLiveContent - ${$(".live-story-post__wrapper").length} blocks`);
+  contentBlocks.push(`<script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>`);
 
-  $(".live-story-post__wrapper").each((i, wrapper) => {
-    const $wrapper = $(wrapper);
-
-    const timestampEl = $wrapper.find(".live-story-post__timestamp");
-    const timestamp = timestampEl.text().trim();
-    const isActive = timestampEl.hasClass("active");
-    const statusText = isActive ? " (Mới nhất)" : "";
-
-    const headline = $wrapper.find(".live-story-post__headline").text().trim();
-    const byline = $wrapper.find(".live-story-post__byline").text().trim();
-
-    contentBlocks.push(
-      `<div class="live-update" style="margin-bottom: 40px; padding: 20px; background: #f9f9f9; border-radius: 8px; border-left: 4px solid #c00;">`
-    );
-
-    if (headline) {
-      contentBlocks.push(`<h3 style="margin: 0 0 10px 0; color: #c00;">${headline}</h3>`);
-    }
-
-    if (timestamp) {
-      contentBlocks.push(
-        `<div style="color: #555; font-size: 0.95em; margin-bottom: 16px;">
-          ${timestamp ? `<time>${timestamp}${statusText}</time>` : ""}
-        </div>`
-      );
-    }
-
-    const $content = $wrapper.find(".live-story-post__content");
-
-    $content.children().each((_, el) => {
-      const $el = $(el);
-
-      $el.find("a").each((_, a) => {
-        const href = $(a).attr("href") || "";
-        if (
-          href.includes("cnn.com") ||
-          href.includes("outlook.com") ||
-          href.includes("reuters.com")
-        ) {
-          $(a).replaceWith($(a).text());
-        }
+  try {
+    // 🔥 CLICK "READ MORE" TRƯỚC
+    if (page && !page.isClosed()) {
+      await page.evaluate(() => {
+        document.querySelectorAll('.live-story-post__collapse-button')
+          .forEach(btn => btn.click());
       });
+      await new Promise(r => setTimeout(r, 1000));
+    }
 
-      if ($el.is("p.paragraph, p")) {
-        const html = $el.html().trim();
-        if (html) contentBlocks.push(`<p>${html}</p>`);
-      } else if ($el.hasClass("image") || $el.is('[data-component-name="image"]')) {
-        const src =
-          $el.find("img.image__dam-img").attr("src") ||
-          $el.find("img").attr("data-src") ||
-          $el.find("img").attr("src");
+    const liveWrappers = $(".live-story-post__wrapper").toArray();
+    for (let i = 0; i < liveWrappers.length; i++) {
+      const $wrapper = $(liveWrappers[i]);
 
-        const alt = $el.find("img").attr("alt") || "";
-        const caption = $el.find(".image__caption").text().trim() || alt;
-        const credit = $el.find(".image__credit").text().trim();
+      console.log(`\n📍 Đang xử lý Live Block ${i + 1}/${liveWrappers.length}`);
 
-        if (src) {
-          const captionHTML = caption
-            ? `<div style="font-size:0.9em; color:#444; margin-top:8px;">${caption}</div>`
-            : "";
-          const creditHTML = credit
-            ? `<div style="font-size:0.85em; color:#777; margin-top:4px;">${credit}</div>`
-            : "";
+      // 🔥 SCROLL ĐÚNG BLOCK
+      if (page && !page.isClosed()) {
+        try {
+          await page.evaluate((index) => {
+            const el = document.querySelectorAll('.live-story-post__wrapper')[index];
+            if (el) el.scrollIntoView({ block: 'center' });
+          }, i);
 
-          contentBlocks.push(
-            `<figure style="margin: 24px 0; text-align:center;">
-              <img src="${src}" alt="${alt}" style="max-width:100%; height:auto; border-radius:4px;">
-              ${captionHTML}
-              ${creditHTML}
-            </figure>`
-          );
-        }
-      } else if ($el.is('aside[data-component-name="pull-quote"]') || $el.hasClass("pull-quote")) {
-        const quoteText =
-          $el.find(".pull-quote_block-quote__text").html() ||
-          $el.find("p").first().html();
-        if (quoteText) {
-          contentBlocks.push(
-            `<blockquote style="border-left: 5px solid #999; padding-left: 20px; margin: 32px 0; font-style: italic; color: #333; font-size: 1.1em;">
-              ${quoteText}
-            </blockquote>`
-          );
+          await new Promise(r => setTimeout(r, 1200));
+        } catch (e) {
+          console.log("⚠️ Scroll lỗi (bỏ qua)");
         }
       }
+
+      const timestamp = $wrapper.find(".live-story-post__timestamp").text().trim();
+      const headline = $wrapper.find(".live-story-post__headline").text().trim();
+
+      contentBlocks.push(
+            `<br/><br/><div class="live-update">`
+          );
+      if (headline) contentBlocks.push(`<h3 style="margin: 0 0 10px 0; color: #c00;">${headline}</h3>`);
+      // if (timestamp) contentBlocks.push(`<p><i>${timestamp}</i></p>`);
+
+      const $content = $wrapper.find(".live-story-post__content");
+
+      for (let j = 0; j < $content.children().length; j++) {
+        const $el = $content.children().eq(j);
+
+        try {
+          if ($el.hasClass("interactive-video") || $el.find(".interactive-video__player").length > 0) {
+            const mp4Src = $el.find("source").attr("src") || $el.find("video source").attr("src");
+            const caption = $el.find(".interactive-video__caption").text().trim();
+            const credit = $el.find(".interactive-video__credit").text().trim();
+
+            if (mp4Src) {
+              contentBlocks.push(`
+                <div style="margin: 24px 0;">
+                  <div style="position:relative; width:100%; max-width:1280px; margin:0 auto; background:#000; border-radius:8px; overflow:hidden; aspect-ratio:16/9;">
+                    <video controls loop muted playsinline style="width:100%; height:100%; display:block;">
+                      <source src="${mp4Src}" type="video/mp4">
+                    </video>
+                  </div>
+                  ${caption ? `<p style="text-align:center; font-size:0.9em; color:#444; margin-top:8px;">${caption}</p>` : ''}
+                </div>
+              `);
+              console.log(`✅ [MP4 Direct] Đã lấy video interactive`);
+            }
+            continue;
+          }
+          // ==================== VIDEO DASH ====================
+          if (
+            $el.is('[class*="video-resource"]') ||
+            $el.find('[class*="video-resource"]').length > 0 ||
+            $el.find('.video-player').length > 0
+          ) {
+            console.log(`🎥 [DASH] Phát hiện video`);
+
+            const videoMPD = await clickAndGetMPD(page, i);
+
+            if (videoMPD) {
+              const playerId = `video-${i}-${j}`;
+              contentBlocks.push(`
+                <div style="margin: 20px 0; text-align: center; max-width: 100%; width: 100%;">
+    
+                  <!-- Container responsive giữ tỉ lệ -->
+                  <div style="position: relative; width: 100%; max-width: 1280px; margin: 0 auto; background: #000; border-radius: 8px; overflow: hidden; aspect-ratio: 16 / 9;">
+                      
+                      <video 
+                          id="${playerId}" 
+                          controls 
+                          style="width: 100%; height: 100%; display: block;"
+                          playsinline>
+                      </video>
+                      
+                  </div>
+                  <script>
+                      (function() {
+                          const videoElement = document.getElementById("${playerId}");
+                          if (!videoElement) return;
+
+                          const url = "${videoMPD}";
+
+                          const player = dashjs.MediaPlayer().create();
+                          
+                          // Cấu hình DASH player tốt hơn
+                          player.updateSettings({
+                              'streaming': {
+                                  'abr': { 'enabled': true },
+                                  'buffer': { 'fastSwitchEnabled': true }
+                              }
+                          });
+
+                          player.initialize(videoElement, url, false);
+
+                          player.on(dashjs.MediaPlayer.events.ERROR, function(e) {
+                              console.error("Lỗi phát DASH:", e);
+                          });
+
+                          // Tự động resize khi thay đổi kích thước cửa sổ
+                          window.addEventListener('resize', () => {
+                              player.resize();
+                          });
+                      })();
+                  </script>
+              </div>
+              `);
+            } else {
+              contentBlocks.push(`<p style="color:red">[Không lấy được video]</p>`);
+            }
+
+            continue;
+          }
+
+          // Text
+          if ($el.is("p.paragraph, p")) {
+            const html = $el.html().trim();
+            if (html) contentBlocks.push(`<p>${html}</p>`);
+          }
+
+          // Image
+          else if ($el.hasClass("image") || $el.is('[data-component-name="image"]')) {
+            const src = $el.find("img.image__dam-img").attr("src") || $el.find("img").attr("data-src") || $el.find("img").attr("src");
+            const alt = $el.find("img").attr("alt") || "";
+            const caption = $el.find(".image__caption").text().trim() || alt;
+            const credit = $el.find(".image__credit").text().trim();
+
+            if (src) {
+              contentBlocks.push(`
+                <figure style="margin: 24px 0; text-align:center;">
+                  <img src="${src}" alt="${alt}" style="max-width:100%; height:auto; border-radius:4px;">
+                  ${caption ? `<div style="font-size:0.9em; color:#444; margin-top:8px;">${caption}</div>` : ''}
+                  ${credit ? `<div style="font-size:0.85em; color:#777; margin-top:4px;">${credit}</div>` : ''}
+                </figure>
+              `);
+            }
+          }
+
+          // Pull Quote
+          else if ($el.is('aside[data-component-name="pull-quote"]') || $el.hasClass("pull-quote")) {
+            const quoteText = $el.find(".pull-quote_block-quote__text").html() || $el.find("p").first().html();
+            if (quoteText) {
+              contentBlocks.push(`<blockquote style="border-left: 5px solid #999; padding-left: 20px; margin: 32px 0; font-style: italic; color: #333; font-size: 1.1em;">${quoteText}</blockquote>`);
+            }
+          }
+
+
+            } catch (e) {
+              console.log(`❌ Lỗi block con`);
+            }
+          }
+        }
+
+  } catch (err) {
+    console.error("❌ Lỗi lớn extractLiveContent:", err.message);
+  }
+  const finalHtml = contentBlocks.join("\n");
+  console.log(`✅ Hoàn thành extractLiveContent (${finalHtml.length} ký tự)`);
+
+  return finalHtml;
+}
+
+
+async function clickAndGetMPD(page, index) {
+  console.log(`   → Click và bắt MPD (block ${index})`);
+
+  try {
+    if (!page || page.isClosed()) {
+      console.log("   ❌ Page đã đóng");
+      return null;
+    }
+
+    return new Promise(async (resolve) => {
+      let found = false;
+
+      const handler = (response) => {
+        const url = response.url();
+
+        if ((url.includes('.mpd') || url.includes('.m3u8')) && !found) {
+          found = true;
+          console.log("🎉 FOUND VIDEO:", url);
+
+          cleanup();
+          resolve(url);
+        }
+      };
+
+      const cleanup = () => {
+        try { page.removeListener('response', handler); } catch {}
+        clearTimeout(timeout);
+      };
+
+      page.on('response', handler);
+
+      // 🔥 CLICK ĐÚNG BLOCK + SUPPORT 2 LOẠI VIDEO
+      const result = await page.evaluate((i) => {
+        const blocks = document.querySelectorAll('.live-story-post__wrapper');
+        const block = blocks[i];
+        if (!block) return "no-block";
+
+        block.scrollIntoView({ block: 'center' });
+
+        // ✅ CASE 1: cover
+        const cover = block.querySelector('.video-resource__cover');
+        if (cover) {
+          cover.click();
+          return "clicked cover";
+        }
+
+        // ✅ CASE 2: player button
+        const playBtn = block.querySelector('.pui_center-controls_big-play-toggle');
+        if (playBtn) {
+          playBtn.click();
+          return "clicked player";
+        }
+
+        // ✅ fallback
+        const video = block.querySelector('video');
+        if (video) {
+          video.click();
+          return "clicked video";
+        }
+
+        return "no-click";
+      }, index);
+
+      console.log("   →", result);
+
+      const timeout = setTimeout(() => {
+        console.log("   ⏰ Không thấy MPD");
+        cleanup();
+        resolve(null);
+      }, 10000);
     });
 
-    contentBlocks.push("</div>");
-  });
-
-  return contentBlocks.join("\n");
+  } catch (err) {
+    console.log(`❌ Lỗi clickAndGetMPD: ${err.message}`);
+    return null;
+  }
 }
 
 async function extractVideoLink(articleUrl) {
@@ -149,7 +323,7 @@ async function extractVideoLink(articleUrl) {
     // Theo dõi response để bắt link .mpd
     page.on('response', (response) => {
       const url = response.url();
-      if (url.includes('.mpd')) {
+      if (url.includes('dash.mpd')) {
         console.log(`[VIDEO] Tìm thấy .mpd: ${url}`);
         
         // Ưu tiên fallback để tránh quảng cáo
@@ -167,7 +341,7 @@ async function extractVideoLink(articleUrl) {
     // Load trang
     await page.goto(articleUrl, { 
       waitUntil: 'networkidle2', 
-      timeout: 10000 
+      timeout: 30000 
     });
 
     console.log("[PUPPETEER] Đang scroll và click nút Play...");
@@ -336,7 +510,6 @@ async function scrapeCNN(baseURL) {
 
     for (const article of selected) {
       console.log(`\nXử lý: ${article.title}`);
-      console.log(`\nXử lý: ${article.title}`);
       console.log(`🔗 CNN: ${article.link}`); // ✅ thêm dòng này
 
       // ✅ FIX 1: Bỏ qua các URL không có article content
@@ -372,9 +545,10 @@ async function scrapeCNN(baseURL) {
 
       let success = false;
       try {
-        const html = await fetchArticleHTMLWithJS(article.link);
+        const result = await fetchArticleHTMLWithJS(article.link);
+        
         console.log(article.link);
-        const $ = cheerio.load(html);
+        const $ = cheerio.load(result.html);
         const isEditorChoice = homepageLinks.has(article.link.split("?")[0]);
         const isLive =
           article.link.includes("/live-news/") ||
@@ -417,9 +591,31 @@ async function scrapeCNN(baseURL) {
 
         if (isLive) {
           console.log("Bài báo Live");
-          content_html = extractLiveContent($);
 
-        } else if (isVideo) {
+          const liveBrowser = await puppeteer.launch({
+            headless: true, // 🔥 để debug
+            args: ['--no-sandbox']
+          });
+
+          const livePage = await liveBrowser.newPage();
+
+          // 🔥 bắt network GLOBAL (QUAN TRỌNG)
+          livePage.on('response', res => {
+            const url = res.url();
+            if (url.includes('.mpd') || url.includes('.m3u8')) {
+              console.log("🌐 GLOBAL VIDEO:", url);
+            }
+          });
+
+          await livePage.goto(article.link, {
+            waitUntil: 'domcontentloaded',
+            timeout: 60000
+          });
+
+          content_html = await extractLiveContent($, livePage);
+
+          await liveBrowser.close();
+        }  else if (isVideo) {
           console.log("Video thuần (CNN Video page)");
           const videoLink = await extractVideoLink(article.link);
           const contentBlocks = [];
@@ -607,22 +803,21 @@ async function scrapeCNN(baseURL) {
 
           content_html = contentBlocks.join("\n");
         }
-
         let cate_2 = !isVideo ? categories[1] : null;
 
-        if (!content_html.trim()) {
-          console.log(`\n[CONTENT DEBUG] Không trích xuất được nội dung cho: ${article.link}`);
-          console.log(`[CONTENT DEBUG] .article__content tồn tại       : ${$(".article__content").length > 0}`);
-          console.log(`[CONTENT DEBUG] .article__content > * count      : ${$(".article__content > *").length}`);
-          console.log(`[CONTENT DEBUG] p.paragraph count                : ${$("p.paragraph").length}`);
-          console.log(`[CONTENT DEBUG] h1 text                          : "${$("h1").first().text().trim().substring(0, 80)}"`);
-          console.log(`[CONTENT DEBUG] Các class div đầu tiên trong body:`);
-          $("body > div").slice(0, 5).each((i, el) => {
-            console.log(`  div[${i}] class="${$(el).attr("class") || ""}"`);
-          });
-          console.log(``);
-          continue;
-        }
+        // if (!content_html.trim()) {
+        //   console.log(`\n[CONTENT DEBUG] Không trích xuất được nội dung cho: ${article.link}`);
+        //   console.log(`[CONTENT DEBUG] .article__content tồn tại       : ${$(".article__content").length > 0}`);
+        //   console.log(`[CONTENT DEBUG] .article__content > * count      : ${$(".article__content > *").length}`);
+        //   console.log(`[CONTENT DEBUG] p.paragraph count                : ${$("p.paragraph").length}`);
+        //   console.log(`[CONTENT DEBUG] h1 text                          : "${$("h1").first().text().trim().substring(0, 80)}"`);
+        //   console.log(`[CONTENT DEBUG] Các class div đầu tiên trong body:`);
+        //   $("body > div").slice(0, 5).each((i, el) => {
+        //     console.log(`  div[${i}] class="${$(el).attr("class") || ""}"`);
+        //   });
+        //   console.log(``);
+        //   continue;
+        // }
 
         // === 2. THU THẬP TẤT CẢ ẢNH TỪ content_html ===
         const seenUrls = new Set();
