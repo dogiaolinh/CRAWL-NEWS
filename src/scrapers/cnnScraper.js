@@ -42,6 +42,7 @@ function extractCategoriesFromURL(url) {
  */
 async function extractLiveContent($, page) {
   const contentBlocks = [];
+  let listThumb = [];
   console.log(`📺 BẮT ĐẦU extractLiveContent - ${$(".live-story-post__wrapper").length} blocks`);
   contentBlocks.push(`<script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>`);
 
@@ -117,62 +118,137 @@ async function extractLiveContent($, page) {
             $el.find('.video-player').length > 0
           ) {
             console.log(`🎥 [DASH] Phát hiện video`);
+            let thumbnail = null;
 
+            const coverEl = $el.find('.video-resource__cover');
+
+            // nếu chính nó là cover
+            if ($el.hasClass('video-resource__cover')) {
+              const style = $el.attr('style') || '';
+              const match = style.match(/url\((.*?)\)/);
+              if (match) thumbnail = match[1];
+            }
+
+            // nếu là con bên trong
+            if (!thumbnail && coverEl.length > 0) {
+              const style = coverEl.attr('style') || '';
+              const match = style.match(/url\((.*?)\)/);
+              if (match) thumbnail = match[1];
+            }
+
+            // decode HTML entities (&amp;)
+            if (thumbnail) {
+              thumbnail = thumbnail.replace(/&amp;/g, '&');
+            }
+
+            console.log("🖼 Thumbnail:", thumbnail);
             const videoMPD = await clickAndGetMPD(page, i);
-
             if (videoMPD) {
-              const playerId = `video-${i}-${j}`;
-              contentBlocks.push(`
-                <div style="margin: 20px 0; text-align: center; max-width: 100%; width: 100%;">
-    
-                  <!-- Container responsive giữ tỉ lệ -->
-                  <div style="position: relative; width: 100%; max-width: 1280px; margin: 0 auto; background: #000; border-radius: 8px; overflow: hidden; aspect-ratio: 16 / 9;">
-                      
-                      <video 
-                          id="${playerId}" 
-                          controls 
-                          style="width: 100%; height: 100%; display: block;"
-                          playsinline>
-                      </video>
-                      
-                  </div>
-                  <script>
-                      (function() {
-                          const videoElement = document.getElementById("${playerId}");
-                          if (!videoElement) return;
+                listThumb.push(thumbnail);
+                const playerId = `video-${i}-${j}`;
+                contentBlocks.push(`
+                  <div style="margin: 24px 0; text-align: center; max-width: 100%; width: 100%;">
 
-                          const url = "${videoMPD}";
+                    <div style="position: relative; width: 100%; max-width: 1280px; margin: 0 auto; background: #000; border-radius: 8px; overflow: hidden; aspect-ratio: 16 / 9;">
 
-                          const player = dashjs.MediaPlayer().create();
-                          
-                          // Cấu hình DASH player tốt hơn
-                          player.updateSettings({
-                              'streaming': {
-                                  'abr': { 'enabled': true },
-                                  'buffer': { 'fastSwitchEnabled': true }
+                        ${thumbnail ? `
+                          <div 
+                            style="position:absolute; top:0; left:0; width:100%; height:100%; cursor:pointer; z-index:2;"
+                            onclick="
+                              this.style.display='none';
+                              const v = document.getElementById('${playerId}');
+                              if(v){
+                                v.dataset.clicked = 'true';
+                                v.play();
                               }
-                          });
+                            "
+                          >
+                            <!-- Thumbnail -->
+                            <img 
+                              src="${thumbnail}" 
+                              style="width:100%; height:100%; object-fit:cover;"
+                            />
 
-                          player.initialize(videoElement, url, false);
+                                      <!-- Overlay tối nhẹ -->
+                                      <div style="
+                                        position:absolute;
+                                        top:0;
+                                        left:0;
+                                        width:100%;
+                                        height:100%;
+                                        background: rgba(0,0,0,0.3);
+                                      "></div>
 
-                          player.on(dashjs.MediaPlayer.events.ERROR, function(e) {
-                              console.error("Lỗi phát DASH:", e);
-                          });
+                                      <!-- Nút PLAY -->
+                                      <div style="
+                                        position:absolute;
+                                        top:50%;
+                                        left:50%;
+                                        transform:translate(-50%, -50%);
+                                        width:80px;
+                                        height:80px;
+                                        border-radius:50%;
+                                        background: rgba(0,0,0,0.6);
+                                        display:flex;
+                                        align-items:center;
+                                        justify-content:center;
+                                        font-size:40px;
+                                        color:white;
+                                      ">
+                                        ▶
+                                      </div>
+                                    </div>
+                                  ` : ''}
 
-                          // Tự động resize khi thay đổi kích thước cửa sổ
-                          window.addEventListener('resize', () => {
-                              player.resize();
-                          });
-                      })();
-                  </script>
-              </div>
-              `);
+                                  <video 
+                                      id="${playerId}" 
+                                      controls 
+                                      style="width: 100%; height: 100%; display: block;"
+                                      playsinline>
+                                  </video>
+                                  
+                              </div>
+
+                              <script>
+                                (function() {
+                                    const videoElement = document.getElementById("${playerId}");
+                                    if (!videoElement) return;
+
+                                    const url = "${videoMPD}";
+                                    const player = dashjs.MediaPlayer().create();
+
+                                    player.updateSettings({
+                                        streaming: {
+                                            abr: { enabled: true },
+                                            buffer: { fastSwitchEnabled: true }
+                                        }
+                                    });
+
+                                    player.initialize(videoElement, url, false);
+
+                                    videoElement.addEventListener('play', function() {
+                                        if (videoElement.dataset.clicked === 'true') {
+                                            player.play();
+                                        }
+                                    });
+
+                                    player.on(dashjs.MediaPlayer.events.ERROR, function(e) {
+                                        console.error("Lỗi phát DASH:", e);
+                                    });
+
+                                    window.addEventListener('resize', () => {
+                                        player.resize();
+                                    });
+                                })();
+                            </script>
+                          </div>
+                        `);
             } else {
               contentBlocks.push(`<p style="color:red">[Không lấy được video]</p>`);
             }
 
-            continue;
-          }
+              continue;
+            }
 
           // Text
           if ($el.is("p.paragraph, p")) {
@@ -219,7 +295,7 @@ async function extractLiveContent($, page) {
   const finalHtml = contentBlocks.join("\n");
   console.log(`✅ Hoàn thành extractLiveContent (${finalHtml.length} ký tự)`);
 
-  return finalHtml;
+  return {finalHtml, listThumb};
 }
 
 
@@ -505,7 +581,7 @@ async function scrapeCNN(baseURL) {
     });
 
     console.log(`Tìm thấy ${articles.length} bài. Lấy 30 bài đầu để test.`);
-    const selected = articles.slice(0, 30);
+    const selected = articles.slice(3, 4);
 
 
     for (const article of selected) {
@@ -588,7 +664,7 @@ async function scrapeCNN(baseURL) {
         // === LẤY NỘI DUNG ===
         let content_html = "";
         const imageList = [];
-
+        let tempImages = [];
         if (isLive) {
           console.log("Bài báo Live");
 
@@ -611,9 +687,17 @@ async function scrapeCNN(baseURL) {
             waitUntil: 'domcontentloaded',
             timeout: 60000
           });
+          let res = (await extractLiveContent($, livePage));
+          content_html = res.finalHtml;
+          let list_thumb = res.listThumb;
 
-          content_html = await extractLiveContent($, livePage);
+        for (let index = 0; index < list_thumb.length; index++) {
+          const element = list_thumb[index];
+          console.log(element);
 
+          tempImages.push({ url: element, alt: "", isThumbnail: false });
+        }
+          
           await liveBrowser.close();
         }  else if (isVideo) {
           console.log("Video thuần (CNN Video page)");
@@ -836,7 +920,7 @@ async function scrapeCNN(baseURL) {
             }
           }
         });
-
+        imageList.push(...tempImages);
         // === 4. TẠO BÀI VIẾT TRƯỚC ===
         const { articleId } = await postToAPI({
           title,
