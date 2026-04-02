@@ -581,7 +581,7 @@ async function scrapeCNN(baseURL) {
     });
 
     console.log(`Tìm thấy ${articles.length} bài. Lấy 30 bài đầu để test.`);
-    const selected = articles.slice(3, 4);
+    const selected = articles.slice(0, 30);
 
 
     for (const article of selected) {
