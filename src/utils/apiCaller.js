@@ -16,7 +16,7 @@ const PROVIDERS = [
     keys: process.env.GROQ_API_KEYS ? process.env.GROQ_API_KEYS.split(",").map(k => k.trim()) : [],
     url: "https://api.groq.com/openai/v1/chat/completions",
     format: "openai",
-    model: "llama-3.1-8b-instant", // model mạnh paraphrase trên Groq
+    model: "llama-3.3-70b-versatile", // model mạnh paraphrase trên Groq
   },
   {
     name: "Mistral",
@@ -36,58 +36,32 @@ const PROVIDERS = [
 
 // === PROMPT CHUNG (giữ nguyên prompt chất lượng cao của anh) ===
 const createPrompt = (text) => `
-### 🧠 Strict Technical Constraints (Top Priority):
-- **NO AUTO-FIX**: Do not attempt to fix, balance, or complete HTML tags. If a </div> exists without a opening <div>, leave it exactly like that.
-- **NO WRAPPING**: Do not wrap the output in any new <div>, <body>, or <html> tags.
-- **NO INDENTATION**: Do not add any new tabs or spaces at the beginning of lines that weren't there.
-- **IDENTICAL ENDING**: The output must end at the exact same character/tag as the input. If the input ends with a word, do not add a newline or a tag.
-- **FORBIDDEN TAGS**: Do not insert any <div> tags that are not present in the original text.
+You are a senior English news editor at TodayNews, an independent international news outlet.
 
-You are a **senior English news editor** working for TodayNews, an independent international news outlet.
-Your task is to **rewrite the following article** to create an original version that:
-- **Avoids any copyright infringement** by significantly rephrasing structure, sentence flow, and wording while preserving 100% of the factual content.
-- **Remains fully factual, neutral, and professional** — suitable for publication on a reputable global news site.
+**Strict Rules (must follow exactly):**
+- Preserve 100% of all facts: names, dates, numbers, quotes (keep in ""), locations, events, and sources.
+- Maintain the original HTML structure exactly: keep all <p>, <img>, <figure>, <em>, <strong>, <ul>, <li>, etc. in the same order and nesting. Do not add, remove, or modify any tags or attributes.
+- NO AUTO-FIX: Do not fix, balance, or complete any HTML tags. Output exactly as-is if malformed.
+- NO WRAPPING: Do not wrap output in <div>, <body>, <html>, code blocks, or any new tags.
+- NO INDENTATION: Do not add extra spaces, tabs, or newlines that weren't in the original.
+- IDENTICAL ENDING: End the output at the exact same character/tag as the input.
+- FORBIDDEN: Do not insert any new <div> or any tag not present in the original.
 
-🎯 **Core Requirements:**
-- **Preserve 100% of facts**: names, dates, numbers, direct quotes (in quotation marks), locations, events, timelines, and sources must remain **exactly** as in the original.
-- **Eliminate all references to "CNN", "TodayNews" branding in source attribution, or any previous outlet-specific marking**:
-  - Remove "(CNN)", "CNN.com", "Reporting by CNN", "CNN Exclusive", etc.      
-  - Replace reporter bylines like "By [Name], CNN" or "By [Name], TodayNews" → simply "By [Name]" or remove if not essential to the story.
-  - Do not imply affiliation with CNN, TodayNews (in source context), or any other specific brand in a way that suggests the original source.
-- **Rephrase aggressively for originality**:
-  - Restructure paragraphs and lead.
-  - Use synonyms, vary sentence length and rhythm.
-  - Break or combine sentences to create a **distinct narrative flow**.
-  - Avoid copying any 5+ word phrase verbatim unless it's a direct quote.
-- **Maintain HTML structure** exactly: keep all <p>, <img>, <figure>, <em>, <strong>, <ul>, <li>, etc., in the same order and nesting.
-- **Do NOT**:
-  - Translate to another language.
-  - Add, remove, or invent any information.
-  - Use passive voice excessively.
-  - Include watermarks, disclaimers, or meta-commentary.
-  - Wrap output in code blocks or quotes.
-
-🧠 **Mindset: Copyright-Safe Transformation**
-Think like a skilled editor crafting an **original wire-style dispatch** from raw facts for TodayNews. 
-The output must read as if written from scratch by our newsroom — **fact-for-fact identical**, but **linguistically unique**.
-It should pass plagiarism checks while retaining full journalistic integrity.
-
-🧠 Important Formatting Rules:
-- Maintain the original HTML structure exactly.
-- DO NOT insert or duplicate any <p>, <img>, <figure>, <em>, or <strong> tags.
-- DO NOT modify or move <img src="..."> attributes in any way.
-- DO NOT wrap the output in code blocks or Markdown.
-- Do NOT normalize, validate, or correct HTML.
-- Even if HTML appears invalid, output MUST preserve it exactly.
--If you add any tag not present in the input, the task is FAILED.
+**Task:**
+Rewrite the article to make it original and copyright-safe:
+- Significantly rephrase sentence structure, word choice, and paragraph flow.
+- Avoid any 5+ word phrases from the original (except direct quotes).
+- Remove all references to "CNN", "TodayNews", or any specific outlet branding (e.g., "(CNN)", "By [Name], CNN" → simply "By [Name]" or remove if not essential).
+- Keep tone neutral, professional, and journalistic.
+-Output only the rewritten HTML. Do not add any explanation.
+**Mindset:** Create a fresh wire-style news dispatch from the raw facts — fact-for-fact identical but linguistically unique. It must pass plagiarism checks while remaining fully accurate.
 
 Original HTML content:
 ${text}
 
-Now rewrite it following all rules above:
+Now rewrite following all rules above:
 `;
 
-// === HÀM GỌI ĐA PROVIDER ===
 async function paraphraseText(text) {
   if (!text?.trim()) return text;
 
@@ -182,7 +156,7 @@ async function paraphraseText(text) {
     }
   }
 
-  console.error("🚫 Tất cả 4 provider và key đều lỗi → trả về text gốc");
+  console.error("🚫 Tất cả provider và key đều lỗi → trả về text gốc");
   return text;
 }
 
