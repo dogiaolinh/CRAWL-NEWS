@@ -10,6 +10,49 @@ const { postToAPI } = require("../api/postArticle");
 const { uploadImage } = require("../api/uploadImage");
 const axios = require("axios");
 
+function extractCategoriesFromURL_video(url) {
+  try {
+    const u = new URL(url);
+    
+    // Tách các segment từ pathname và loại bỏ segment rỗng
+    let segments = u.pathname
+      .split('/')
+      .filter(seg => seg && seg.trim().length > 0);
+
+    // Danh sách từ cần loại bỏ (không phải category)
+    const blacklist = [
+      'tag', 'tags', 'category', 'categories', 
+      'post', 'article', 'news', 'blog', 'video', 'videos',
+      'page', 'author', 'search', 'index', 'index.html'
+    ];
+
+    // Lọc bỏ:
+    // - Các từ trong blacklist
+    // - Năm (4 chữ số)
+    // - Tháng/ngày (1-2 chữ số)
+    // - Segment quá dài (thường là slug)
+    segments = segments.filter(seg => {
+      const lower = seg.toLowerCase();
+      return !blacklist.includes(lower) &&
+             !/^\d{4}$/.test(seg) &&           // loại năm: 2025
+             !/^\d{1,2}$/.test(seg) &&         // loại 12, 20, 04...
+             seg.length < 25;                  // loại slug quá dài
+    });
+
+    // Trả về tối đa 2 category gần nhất (thường là 2 segment cuối cùng)
+    if (segments.length === 0) {
+      return [];
+    } else if (segments.length >= 2) {
+      return segments.slice(-2);   // lấy 2 cái cuối
+    } else {
+      return segments;
+    }
+
+  } catch (e) {
+    console.warn(`Cannot extract categories from URL: ${url}`);
+    return [];
+  }
+}
 function extractCategoriesFromURL(url) {
   try {
     const u = new URL(url);
@@ -580,7 +623,7 @@ async function scrapeCNN(baseURL) {
       }
     });
 
-    console.log(`Tìm thấy ${articles.length} bài. Lấy 30 bài đầu để test.`);
+    console.log(`Tìm thấy ${articles.length} bài. Lấy 10 bài đầu để test.`);
     const selected = articles.slice(0, 10);
 
 
@@ -646,7 +689,7 @@ async function scrapeCNN(baseURL) {
         const title = $("h1").first().text().trim() || article.title;
         let categories;
         if (isVideo) {
-          categories = extractCategoriesFromURL(article.link);
+          categories = extractCategoriesFromURL_video(article.link);
         } else {
           categories = extractCategoriesFromURL(baseURL);
         }
