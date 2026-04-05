@@ -16,7 +16,8 @@ const PROVIDERS = [
     keys: process.env.GROQ_API_KEYS ? process.env.GROQ_API_KEYS.split(",").map(k => k.trim()) : [],
     url: "https://api.groq.com/openai/v1/chat/completions",
     format: "openai",
-    model: "llama-3.3-70b-versatile", // model mạnh paraphrase trên Groq
+    model: "llama-3.1-8b-instant", // model mạnh paraphrase trên Groq
+    // model: "llama-3.3-70b-versatile", // model mạnh paraphrase trên Groq
   },
   {
     name: "Mistral",
