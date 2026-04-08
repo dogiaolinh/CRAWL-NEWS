@@ -463,13 +463,13 @@ async function extractVideoLink(articleUrl) {
       timeout: 30000 
     });
 
-    console.log("[PUPPETEER] Đang scroll và click nút Play...");
+    // console.log("[PUPPETEER] Đang scroll và click nút Play...");
 
     // Scroll xuống để video xuất hiện
-    await page.evaluate(() => {
-      window.scrollBy(0, 600);
-    });
-    await new Promise(r => setTimeout(r, 1000));
+    // await page.evaluate(() => {
+    //   window.scrollBy(0, 600);
+    // });
+    await new Promise(r => setTimeout(r, 5000));
 
     // Tìm và click nút Play (dùng selector anh cung cấp)
     const playButtonSelectors = [
@@ -481,27 +481,29 @@ async function extractVideoLink(articleUrl) {
       '.play-icon'
     ];
 
-    let clicked = false;
+    if(videoLink==null){
+      let clicked = false;
 
-    for (const selector of playButtonSelectors) {
-      try {
-        const button = await page.$(selector);
-        if (button) {
-          console.log(`→ Tìm thấy nút Play với selector: ${selector}`);
-          await button.click();
-          clicked = true;
-          console.log("→ Đã click nút Play");
-          break;
+      for (const selector of playButtonSelectors) {
+        try {
+          const button = await page.$(selector);
+          if (button) {
+            console.log(`→ Tìm thấy nút Play với selector: ${selector}`);
+            await button.click();
+            clicked = true;
+            console.log("→ Đã click nút Play");
+            break;
+          }
+        } catch (e) {
+          // tiếp tục thử selector khác
         }
-      } catch (e) {
-        // tiếp tục thử selector khác
       }
-    }
 
-    if (!clicked) {
-      console.log("Không tìm thấy nút Play, thử click vào vùng video...");
-      // Click vào vùng video nếu không tìm thấy nút
-      await page.click('.video-resource, .media__video, .video-player').catch(() => {});
+      if (!clicked) {
+        console.log("Không tìm thấy nút Play, thử click vào vùng video...");
+        // Click vào vùng video nếu không tìm thấy nút
+        await page.click('.video-resource, .media__video, .video-player').catch(() => {});
+      }
     }
 
     // Chờ manifest load sau khi click
@@ -749,6 +751,41 @@ async function scrapeCNN(baseURL) {
           if (videoLink) {
             let description = $('.video-resource__description p, [data-editable="description"] p').text().trim() || '';
             description = description.replace(/\(CNN\)/gi, '').trim();
+            const $videoDivs = $('.video-inline__video-resource > .video-resource');
+            $videoDivs.each((i, el) => {
+              const $el = $(el);
+
+              // 👉 ưu tiên lấy cái này
+              let posterRaw = $el.attr('data-fave-thumbnails');
+              if (!posterRaw) {
+                posterRaw = $el.attr('data-poster-image-override');
+              }
+
+              if (!posterRaw) return;
+
+              let thumbnail = null;
+              try {
+                const posterJson = JSON.parse(
+                  posterRaw.replace(/&quot;/g, '"')
+                );
+
+                thumbnail = posterJson.big?.uri || posterJson.small?.uri;
+
+                if (thumbnail) {
+                  // fix &amp;
+                  thumbnail = thumbnail.replace(/&amp;/g, '&').trim();
+                   imageList.push({
+                    url: thumbnail,
+                    alt: "",
+                    isThumbnail: false
+                  });
+                }
+
+              } catch (e) {
+                console.log("❌ Lỗi parse thumbnail:", e);
+              }
+
+            });
 
             const videoEmbed = `
               <div style="margin: 20px 0; text-align: center; max-width: 100%; width: 100%;">
@@ -806,6 +843,7 @@ async function scrapeCNN(baseURL) {
             content_html = contentBlocks.join("\n");
           } else {
             console.log("Không tìm thấy manifest .dash.mpd");
+            continue;
           }
 
         } else {
