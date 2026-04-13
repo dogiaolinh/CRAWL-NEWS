@@ -433,94 +433,98 @@ async function extractVideoLink(articleUrl) {
         '--disable-gpu',
         '--window-size=1920,1080',
         '--disable-blink-features=AutomationControlled',
+        '--disable-web-security',
       ],
     });
 
     const page = await browser.newPage();
-    await page.setDefaultNavigationTimeout(10000);
+    
+    // User-Agent desktop mạnh hơn
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36');
 
-    // Theo dõi response để bắt link .mpd
+    await page.setDefaultNavigationTimeout(60000);
+    await page.setDefaultTimeout(30000);
+
+    // Bắt response .mpd
     page.on('response', (response) => {
       const url = response.url();
-      if (url.includes('dash.mpd')) {
+      if (url.includes('.dash.mpd') || url.includes('mpd?')) {
         console.log(`[VIDEO] Tìm thấy .mpd: ${url}`);
         
-        // Ưu tiên fallback để tránh quảng cáo
         if (url.includes('fallback') || !url.includes('ctx=')) {
           videoLink = url;
-          console.log(`→ Chọn FALLBACK manifest (tránh quảng cáo)`);
-        } 
-        else if (!videoLink) {
+          console.log(`→ Chọn FALLBACK manifest (tốt nhất)`);
+        } else if (!videoLink) {
           videoLink = url;
-          console.log(`→ Chọn MASTER manifest`);
         }
       }
     });
 
-    // Load trang
+    console.log(`Đang mở trang: ${articleUrl}`);
     await page.goto(articleUrl, { 
       waitUntil: 'networkidle2', 
-      timeout: 30000 
+      timeout: 60000 
     });
 
-    // console.log("[PUPPETEER] Đang scroll và click nút Play...");
+    // Scroll xuống nhiều lần để video load
+    // await page.evaluate(() => window.scrollBy(0, 800));
+    await new Promise(r => setTimeout(r, 3000));
 
-    // Scroll xuống để video xuất hiện
-    // await page.evaluate(() => {
-    //   window.scrollBy(0, 600);
-    // });
-    await new Promise(r => setTimeout(r, 5000));
-
-    // Tìm và click nút Play (dùng selector anh cung cấp)
+    // Click Play - tăng cường
     const playButtonSelectors = [
       'button.sc-dhoNoI.jFXs.pui_center-controls_big-play-toggle',
       '.video__play-button',
       '.media__play-button',
       '.vjs-big-play-button',
-      'button[aria-label="Play"]',
-      '.play-icon'
+      'button[aria-label*="Play"]',
+      'button[title*="Play"]',
+      '.play-icon',
+      '.pui_center-controls_big-play-toggle'
     ];
 
-    if(videoLink==null){
-      let clicked = false;
+    let clicked = false;
 
+    if(!videoLink){
       for (const selector of playButtonSelectors) {
         try {
           const button = await page.$(selector);
           if (button) {
-            console.log(`→ Tìm thấy nút Play với selector: ${selector}`);
+            console.log(`→ Tìm thấy nút Play: ${selector}`);
             await button.click();
             clicked = true;
             console.log("→ Đã click nút Play");
             break;
           }
-        } catch (e) {
-          // tiếp tục thử selector khác
-        }
+        } catch (e) {}
       }
-
       if (!clicked) {
-        console.log("Không tìm thấy nút Play, thử click vào vùng video...");
-        // Click vào vùng video nếu không tìm thấy nút
-        await page.click('.video-resource, .media__video, .video-player').catch(() => {});
+        console.log("Không tìm thấy nút Play, thử click vùng video...");
+        await page.click('.video-resource, .media__video, .video-player, video').catch(() => {});
       }
     }
 
-    // Chờ manifest load sau khi click
-    await new Promise(r => setTimeout(r, 1000));
+
+    // === PHẦN QUAN TRỌNG: CHỜ LÂU HƠN ĐỂ .mpd LOAD ===
+    console.log("Đang chờ video manifest load (tối đa 15 giây)...");
+    await new Promise(r => setTimeout(r, 8000));   // chờ 8 giây
+
+    // Chờ thêm nếu chưa có link
+    if (!videoLink) {
+      await new Promise(r => setTimeout(r, 7000)); // chờ thêm 7 giây
+    }
 
     await browser.close();
 
     if (videoLink) {
-      console.log(`✅ Tìm thấy video link: ${videoLink}`);
+      console.log(`✅ Thành công! Video link: ${videoLink}`);
     } else {
-      console.log("❌ Vẫn không tìm thấy .mpd nào sau khi click Play");
+      console.log("❌ Không tìm thấy .mpd nào sau khi click Play");
     }
 
     return videoLink;
 
   } catch (err) {
-    console.error(`Lỗi Puppeteer cho ${articleUrl}:`, err.message);
+    console.error(`Lỗi extractVideoLink ${articleUrl}:`, err.message);
     return null;
   }
 }
