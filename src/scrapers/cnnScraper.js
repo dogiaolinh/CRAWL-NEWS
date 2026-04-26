@@ -187,7 +187,9 @@ async function extractLiveContent($, page) {
             console.log("🖼 Thumbnail:", thumbnail);
             const videoMPD = await clickAndGetMPD(page, i);
             if (videoMPD) {
-                listThumb.push(thumbnail);
+                if(thumbnail){
+                  listThumb.push(thumbnail);
+                }
                 const playerId = `video-${i}-${j}`;
                 contentBlocks.push(`
                   <div style="margin: 24px 0; text-align: center; max-width: 100%; width: 100%;">
