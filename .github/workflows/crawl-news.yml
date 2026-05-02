@@ -15,26 +15,31 @@ on:
 jobs:
   crawl-and-post:
     runs-on: ubuntu-latest
-    timeout-minutes: 200  # ✅ FIX 3: tránh treo vô hạn
-    
+    timeout-minutes: 200
+
+    env:
+      GEMINI_API_KEYS: ${{ secrets.GEMINI_API_KEYS }}
+      GROQ_API_KEYS: ${{ secrets.GROQ_API_KEYS }}
+      MISTRAL_API_KEYS: ${{ secrets.MISTRAL_API_KEYS }}
+      OPENROUTER_API_KEYS: ${{ secrets.OPENROUTER_API_KEYS }}
+      # Không cần set PUPPETEER_EXECUTABLE_PATH và PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = false
+
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
-      
+        uses: actions/checkout@v4
+
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
-      - name: Install Chromium and dependencies
+      - name: Install system dependencies (quan trọng)
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            chromium \
-            libatk1.0-0 \
-            libatk-bridge2.0-0 \
-            libcups2 \
+            libnss3 \
+            libatk-bridge2.0-0t64 \
             libdrm2 \
             libxkbcommon0 \
             libxcomposite1 \
@@ -42,29 +47,14 @@ jobs:
             libxfixes3 \
             libxrandr2 \
             libgbm1 \
-            libnss3 \
-            libgtk-3-0 \
+            libgtk-3-0t64 \
+            libasound2t64 \
             libxss1 \
-            libasound2t64
-        # ✅ FIX 1: đổi chromium-browser → chromium (Ubuntu 24.04)
-        # ✅ FIX 2: thêm đủ dependencies
+            fonts-liberation \
+            fonts-freefont-ttf
 
-      - name: Verify Chromium path  # ✅ thêm bước kiểm tra để debug nếu cần
-        run: |
-          which chromium
-          chromium --version
-      
-      - name: Install dependencies
-        run: npm install
-        env:
-          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true
-      
+      - name: Install npm dependencies
+        run: npm ci
+
       - name: Run crawler
         run: node src/index.js
-        env:
-          GEMINI_API_KEYS: ${{ secrets.GEMINI_API_KEYS }}
-          GROQ_API_KEYS: ${{ secrets.GROQ_API_KEYS }}
-          MISTRAL_API_KEYS: ${{ secrets.MISTRAL_API_KEYS }}
-          OPENROUTER_API_KEYS: ${{ secrets.OPENROUTER_API_KEYS }}
-          PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium  # ✅ FIX 1: đổi path
-          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true
