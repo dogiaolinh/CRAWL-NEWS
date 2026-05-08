@@ -84,10 +84,10 @@ function extractCategoriesFromURL(url) {
  * Extract nội dung Live Story CNN - Hỗ trợ đầy đủ các loại video
  */
 async function extractLiveContent($, page) {
+  let hasDashVideo = false;
   const contentBlocks = [];
   let listThumb = [];
   console.log(`📺 BẮT ĐẦU extractLiveContent - ${$(".live-story-post__wrapper").length} blocks`);
-  contentBlocks.push(`<script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>`);
 
   try {
     // 🔥 CLICK "READ MORE" TRƯỚC
@@ -187,6 +187,7 @@ async function extractLiveContent($, page) {
             console.log("🖼 Thumbnail:", thumbnail);
             const videoMPD = await clickAndGetMPD(page, i);
             if (videoMPD) {
+                hasDashVideo = true;
                 if(thumbnail){
                   listThumb.push(thumbnail);
                 }
@@ -331,8 +332,12 @@ async function extractLiveContent($, page) {
             } catch (e) {
               console.log(`❌ Lỗi block con`);
             }
-          }
-        }
+      }
+    }
+    if (hasDashVideo) {
+      contentBlocks.push(`<script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>`);
+      console.log("✅ Đã thêm script dash.all.min.js (1 lần)");
+    }
 
   } catch (err) {
     console.error("❌ Lỗi lớn extractLiveContent:", err.message);
