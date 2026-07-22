@@ -108,7 +108,7 @@ async function translateText(text, isTitle = false) {
             model: provider.model,
             messages: [{ role: "user", content: prompt }],
             temperature: 0.7,
-            max_tokens: 8192,
+            max_tokens: 4096,
             top_p: 0.95,
           }, {
             headers: {

@@ -11,14 +11,14 @@ const PROVIDERS = [
   //   format: "gemini",
   //   model: "gemini-2.5-flash",
   // },
-  {
-    name: "Groq",
-    keys: process.env.GROQ_API_KEYS ? process.env.GROQ_API_KEYS.split(",").map(k => k.trim()) : [],
-    url: "https://api.groq.com/openai/v1/chat/completions",
-    format: "openai",
-    model: "llama-3.1-8b-instant", // model mạnh paraphrase trên Groq
-    // model: "llama-3.3-70b-versatile", // model mạnh paraphrase trên Groq
-  },
+  // {
+  //   name: "Groq",
+  //   keys: process.env.GROQ_API_KEYS ? process.env.GROQ_API_KEYS.split(",").map(k => k.trim()) : [],
+  //   url: "https://api.groq.com/openai/v1/chat/completions",
+  //   format: "openai",
+  //   model: "llama-3.1-8b-instant", // model mạnh paraphrase trên Groq
+  //   // model: "llama-3.3-70b-versatile", // model mạnh paraphrase trên Groq
+  // },
   {
     name: "Mistral",
     keys: process.env.MISTRAL_API_KEYS ? process.env.MISTRAL_API_KEYS.split(",").map(k => k.trim()) : [],
@@ -110,7 +110,7 @@ async function paraphraseText(text) {
             model: provider.model,
             messages: [{ role: "user", content: prompt }],
             temperature: 0.8,
-            max_tokens: 8192,
+            max_tokens: 4096,
             top_p: 0.95,
           }, {
             headers: {
